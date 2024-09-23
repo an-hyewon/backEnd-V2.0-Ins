@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="terms">
+  
+  <select id="selectTermsAgreeContent">
+    SELECT ktam.trms_agre_pstn AS terms_agree_position
+           , ktam.trms_agre_type AS terms_agree_type
+           , ktam.trms_agre_ttl AS terms_agree_title
+           , ktac.trms_agre_cd AS terms_agree_cd
+           , ktac.trms_agre_nm AS terms_agree_nm
+           , ktac.trms_agre_whol_cn AS terms_agree_cont_full
+           , ktac.trms_agre_cn AS terms_agree_content
+    FROM ksg_trms_agre_map ktam LEFT JOIN (
+                                           SELECT *
+                                           FROM ksg_trms_agre_cd
+                                           WHERE del_dt IS NULL
+                                          ) ktac ON ktam.trms_agre_cd_id = ktac.id
+    WHERE 1=1
+      AND ktam.del_dt IS NULL
+    ORDER BY ktam.sort_seq
+  </select>
+  
+</mapper>
