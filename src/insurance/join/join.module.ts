@@ -19,6 +19,14 @@ import { CcaliAnswerResponse } from '../plan/entities/ccali-answer-response.enti
 import { CcaliQuestionAnswerTemplate } from '../plan/entities/ccali-question-answer-template.entity';
 import { CcaliJoinPayLogs } from './entities/ccali-join-pay-logs.entity';
 import { MailModule } from 'src/mail/mail.module';
+import { DliJoin } from './entities/dli-join.entity';
+import { MfliJoin } from './entities/mfli-join.entity';
+import { DliJoinTmp } from './entities/dli-join-tmp.entity';
+import { MfliJoinTmp } from './entities/mfli-join-tmp.entity';
+import { InsuratorJoin } from './entities/insurator-join.entity';
+import { InsuratorJoinFee } from './entities/insurator-join-fee.entity';
+import { InsuratorEstimateFile } from './entities/insurator-estimate-file.entity';
+import { TotalBizMember } from './entities/total-biz-member.entity';
 
 @Module({
   imports: [
@@ -38,6 +46,7 @@ import { MailModule } from 'src/mail/mail.module';
       InsProd,
       JoinConfirm,
       MasterInsStockNo,
+
       CcaliJoin,
       CcaliCoverageLimit,
       NtsBizType,
@@ -47,6 +56,15 @@ import { MailModule } from 'src/mail/mail.module';
       CcaliAnswerResponse,
       CcaliQuestionAnswerTemplate,
       CcaliJoinPayLogs,
+
+      DliJoin,
+      MfliJoin,
+      DliJoinTmp,
+      MfliJoinTmp,
+      InsuratorJoin,
+      InsuratorJoinFee,
+      InsuratorEstimateFile,
+      TotalBizMember,
     ]),
     PlanModule,
     MailModule,

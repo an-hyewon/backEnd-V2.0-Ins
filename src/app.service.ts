@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Connection, Repository } from 'typeorm';
 import * as dayjs from 'dayjs';
 import * as ExcelJS from 'exceljs';
 import { join } from 'path';
@@ -15,16 +15,18 @@ import { MailService } from './mail/mail.service';
 import { CcaliInsCostNotice } from './insurance/join/entities/ccali-ins-cost-notice.entity';
 import { EmailSendLogs } from './mail/entities/email-send-logs.entity';
 import { CcaliJoin } from './insurance/join/entities/ccali-join.entity';
+import { DsfSixGruopJoinUpload } from './insurance/join/entities/dsf-six-group-join-upload.entity';
 
 @Injectable()
 export class AppService {
   constructor(
     private readonly commonService: CommonService,
     private readonly mailService: MailService,
-    @InjectRepository(ClientLog)
-    private clientLogRepository: Repository<ClientLog>,
+    private readonly connection: Connection,
     @InjectRepository(CcaliJoin)
     private ccaliJoinRepository: Repository<CcaliJoin>,
+    @InjectRepository(DsfSixGruopJoinUpload)
+    private dsfSixGruopJoinUploadRepository: Repository<DsfSixGruopJoinUpload>,
   ) {}
 
   private readonly logger = new Logger(AppService.name);
@@ -46,14 +48,6 @@ export class AppService {
     };
 
     return responseResult;
-  }
-
-  async saveClientLog(data: CreateClientLogReqDto) {
-    return this.clientLogRepository.save(data);
-  }
-
-  async updateClientLog(id: number, data: UpdateClientLogReqDto) {
-    return this.clientLogRepository.update(id, data);
   }
 
   createUid() {
@@ -212,223 +206,54 @@ export class AppService {
     return responseResult;
   }
 
-  async sendPremCmptDoneNotice(joinId: number) {
+  async updateBizStatus() {
     let statusCode = 200000;
     let returnMsg = 'ok';
+
     let result = {};
 
-    const premCmptJoinQuery = this.ccaliJoinRepository
-      .createQueryBuilder('join')
-      .select('join.id', 'id')
-      .addSelect('join.plan_id', 'planId')
-      .addSelect('join.insured_biz_no', 'insuerdBizNo')
-      .addSelect('join.ph_phone_no', 'phPhoneNo')
-      .addSelect('join.ph_eml', 'phEmail')
-      .addSelect('join.join_account', 'joinAccount')
-      .addSelect('join.join_path', 'joinPath')
-      .addSelect('costNotice.eml_snd_logs_id', 'emailSendLogsId')
-      .addSelect('costNotice.ph_biz_no', 'phBizno')
-      .addSelect('costNotice.ph_fran_nm', 'phFranNm')
-      .addSelect('costNotice.single_ins_cst', 'singleInsCost')
-      .addSelect('costNotice.bianl_ins_cst', 'biannualInsCost')
-      .addSelect('costNotice.quarter_ins_cst', 'quarterlyInsCost')
-      .addSelect('costNotice.prem_cmpt_ymd', 'premCmptYmd')
-      .addSelect('costNotice.grnte_4_join_cd', 'guarantee4JoinCd') // 1: 둘다, 2: 산업재해, 3: 시민재해
-      .addSelect('costNotice.grnte_5_join_cd', 'guarantee5JoinCd') // 1: 위기관리1, 2: 위기관리2
-      .addSelect('costNotice.per_acdnt_cvrg_limit', 'perAccidentCoverageLimit')
-      .addSelect('costNotice.tot_cvrg_limit', 'totCoverageLimit')
-      .addSelect(
-        `CASE WHEN join.url LIKE "%localhost%" THEN "Y"
-                WHEN join.url LIKE "https://dev%" THEN "Y"
-                ELSE "N" END`,
-        'devYn',
-      )
-      .innerJoin(
-        (subQuery) => {
-          return subQuery
-            .select('cicn.*')
-            .from(CcaliInsCostNotice, 'cicn')
-            .where('cicn.eml_snd_logs_id IS NOT NULL')
-            .andWhere('cicn.eml_rcv_logs_id IS NOT NULL');
-        },
-        'costNotice',
-        'join.id = costNotice.join_id',
-      )
-      .leftJoin(
-        (subQuery) => {
-          return subQuery
-            .select('esl.id', 'id')
-            .addSelect('esl.eml_from', 'eml_from')
-            .addSelect('esl.eml_to', 'eml_to')
-            .addSelect('esl.eml_subject', 'eml_subject')
-            .addSelect('esl.eml_cc', 'eml_cc')
-            .addSelect('esl.eml_text', 'eml_text')
-            .addSelect('esl.eml_html', 'eml_html')
-            .addSelect('esl.eml_attachments', 'eml_attachments')
-            .addSelect('esl.rspns_data', 'rspns_data')
-            .addSelect('esl.error_data', 'error_data')
-            .addSelect('esl.message_id', 'message_id')
-            .addSelect('esl.crt_dt', 'crt_dt')
-            .addSelect('esl.updt_dt', 'updt_dt')
-            .addSelect('esl.del_dt', 'del_dt')
-            .addSelect(
-              `SUBSTRING_INDEX(
-                    SUBSTRING_INDEX(esl.eml_text, "history-detail?id=", -1),
-                    "&", 
-                    1
-                )`,
-              'id_value',
-            )
-            .from(EmailSendLogs, 'esl')
-            .where('esl.eml_subject LIKE "%기업중대사고%"')
-            .andWhere('esl.eml_subject LIKE "%배상책임보험%"')
-            .andWhere('esl.eml_subject LIKE "%보험료 안내%"');
-        },
-        'sendMail',
-        'join.ph_eml = sendMail.eml_to AND sendMail.id_value = join.id',
-      )
-      .where('join.del_yn = :delYn', { delYn: 'N' });
-    // .where('join.del_yn = :delYn', { delYn: 'N' })
-    // .andWhere('join.join_stts_cd = "P"')
-    // .andWhere('join.id = :joinId', { joinId })
-    // .andWhere('sendMail.id IS NULL');
+    const data = await this.selectDsfSixGruopJoinUploads();
+    for (let index = 0; index < data.length; index++) {
+      const element = data[index];
 
-    premCmptJoinQuery.orderBy('join.id', 'ASC');
-
-    const premCmptJoin = await premCmptJoinQuery.getRawMany();
-    console.log('premCmptJoin', premCmptJoin);
-
-    throw new BadRequestException('test');
-
-    if (premCmptJoin.length == 0) {
-      statusCode = 200020;
-      returnMsg = '검색 결과 없음';
-
-      let responseResult = {
-        code: statusCode,
-        message: returnMsg,
-        result,
-      };
-
-      return responseResult;
-    }
-
-    const element = premCmptJoin[0];
-    const planId = element.planId;
-
-    // 가입 가능 처리
-    await this.ccaliJoinRepository.update(joinId, {
-      joinStatusCd: 'A',
-      totInsCost: element?.singleInsCost,
-      premCmptDt: dayjs(element?.premCmptYmd).toDate(),
-      guaranteeDisaterCd:
-        element?.guarantee4JoinCd == '2'
-          ? 'indst'
-          : element?.guarantee4JoinCd == '3'
-            ? 'civil'
-            : 'all',
-      perAccidentCoverageLimit: element?.perAccidentCoverageLimit,
-      totCoverageLimit: element?.totCoverageLimit,
-    });
-
-    // 보험료 안내문 생성
-    let singleCostNoticeFileName = '';
-    let singleCostNoticeFileUrl = '';
-    let singleCostNoticeFilePath = '';
-    let biannualCostNoticeFileName = '';
-    let biannualCostNoticeFileUrl = '';
-    let biannualCostNoticeFilePath = '';
-    let quarterlyCostNoticeFileName = '';
-    let quarterlyCostNoticeFileUrl = '';
-    let quarterlyCostNoticeFilePath = '';
-    const insCostNoticeResult = this.commonService.funInsCostNotice(
-      joinId,
-      planId,
-    );
-
-    // 알림톡 발송
-    const sendAlimtalk = await this.commonService.sendKakaoAlimtalk({
-      receivers: element?.phPhoneNo,
-      reservedYn: 'N',
-      sender: '15229323',
-      joinId,
-      messageType: 'NOTICE_PREM',
-    });
-
-    if (element?.phEmail != null) {
-      // 메일 발송
-      const mailTo = element?.phEmail;
-      let mailSubject = `(테스트)[기업중대사고 배상책임보험 보험료 안내]`;
-      if (element?.devYn == 'N') {
-        mailSubject = `[기업중대사고 배상책임보험 보험료 안내]`;
-      }
-      let premCmptUrl = '';
-      if (element?.devYn == 'N' && element?.joinAccount == 'SK엠앤서비스') {
-        premCmptUrl = `https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
-      } else if (element?.joinAccount == 'SK엠앤서비스') {
-        premCmptUrl = `https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
-      } else if (
-        element?.devYn == 'N' &&
-        element?.joinAccount == '우리카드' &&
-        element?.joinPath == '마린슈'
+      let bizStatusCd = 200000;
+      let bizStatusMsg = '';
+      let bizStatusCk = 'Y';
+      const bizStatus = await this.commonService.getBizNoStatus(
+        element.insuredBizNo.trim(),
+      );
+      console.log('index: ', index, ' bizStatus', bizStatus);
+      if (
+        !bizStatus.success &&
+        bizStatus.msg == '휴/폐업자는 가입할 수 없습니다.'
       ) {
-        premCmptUrl = `https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
-      } else if (
-        element?.joinAccount == '우리카드' &&
-        element?.joinPath == '마린슈'
-      ) {
-        premCmptUrl = `https://dev-ccali.wooricard-marinshu-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
-      } else if (element?.devYn == 'N' && element?.joinAccount == '우리카드') {
-        premCmptUrl = `https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
-      } else if (element?.joinAccount == '우리카드') {
-        premCmptUrl = `https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${element?.phPhoneNo}`;
+        bizStatusCd = 200010;
+        bizStatusMsg = '휴/폐업자는 가입할 수 없습니다.';
+        bizStatusCk = 'F';
+      } else if (!bizStatus.success) {
+        bizStatusCk = 'N';
       }
-      let mailText = `안녕하세요. ${element?.phFranNm}님
-기업중대사고 배상책임보험
-보험료 확인이 완료되었습니다.
 
-아래 링크를 통해 보험료를 확인해 주세요.
-보험료 확인 후 가입까지 진행 가능합니다.
-
-보험료 확인하기
-${premCmptUrl}
-
-기타 문의 사항은 아래 연락처로 문의 바랍니다.
-
-※문의처
-보온 기업중대사고배상책임보험
-전용고객센터 : 1522-9323 (평일 9:00~18:00 / 점심시간 12:00~13:00)`;
-      const excelAttachments = [];
-      excelAttachments.push({
-        filename: '일시납 보험료.pdf',
-        path: singleCostNoticeFilePath,
-      });
-      if (planId == 5) {
-        if (biannualCostNoticeFilePath != '') {
-          excelAttachments.push({
-            filename: '2회납 보험료.pdf',
-            path: biannualCostNoticeFilePath,
-          });
-        }
-        if (quarterlyCostNoticeFilePath != '') {
-          excelAttachments.push({
-            filename: '4회납 보험료.pdf',
-            path: quarterlyCostNoticeFilePath,
-          });
-        }
-      }
-      const sendMail = await this.mailService.sendMail({
-        to: mailTo,
-        subject: mailSubject,
-        text: mailText,
-        attachments: excelAttachments,
-      });
-      const { responseCode, responseMsg, responseData } = sendMail;
-      if (responseCode == 0) {
-        result = responseData;
+      if (bizStatusCd == 200010) {
+        await this.dsfSixGruopJoinUploadRepository.update(
+          {
+            id: element.id,
+          },
+          {
+            biznumStatusCk: bizStatusCk,
+            errCd: bizStatusCd.toString(),
+            errMsg: bizStatusMsg,
+          },
+        );
       } else {
-        statusCode = 200030;
-        returnMsg = `메일 발송 실패`;
+        await this.dsfSixGruopJoinUploadRepository.update(
+          {
+            id: element.id,
+          },
+          {
+            biznumStatusCk: bizStatusCk,
+          },
+        );
       }
     }
 
@@ -439,5 +264,13 @@ ${premCmptUrl}
     };
 
     return responseResult;
+  }
+
+  async selectDsfSixGruopJoinUploads() {
+    return await this.dsfSixGruopJoinUploadRepository.find({
+      where: {
+        biznumStatusCk: 'F',
+      },
+    });
   }
 }

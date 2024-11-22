@@ -50,95 +50,14 @@ async function bootstrap() {
 
   /** swagger **/
   const swaggerOptionsV1 = new DocumentBuilder()
-    .setTitle('보온 중대재해 API 명세서')
+    .setTitle('보험 API 명세서')
     // .setDescription(
     //   `
-    //   2024-06-25 수정사항
-    //   - GET /api/plan/coverage-limit-default 매출액 대비 보상한도 기본값 추가
-    //   - GET /api/plan/cost 보상한도별 보험료 조회 추가
-    //   - GET /api/cert/iamport/:impUid 아임포트 본인인증 결과 조회 추가
-    //   - GET /api/cert/iamport/logs/:merchantUid 아임포트 본인인증 로그 조회 추가
-    //   - POST /api/cert/iamport/logs 아임포트 본인인증 로그 저장 추가
-
-    //   2024-06-26 수정사항
-    //   - POST /api/join 가입신청 정보 저장 추가
-    //   - GET /api/refer-idx referIdx 생성 추가
-
-    //   2024-06-27 수정사항
-    //   - PATCH /api/join/:joinId 가입신청 정보 업데이트(본인인증 결과, 결제 수단) 추가
-    //   - PATCH /api/join/payment/:joinId 가입신청 정보 업데이트(결제 결과) 추가
-    //   - GET /api/pay/nicepay/logs/:moid 나이스페이 결제 결과 로그 조회 추가
-    //   - POST /api/pay/nicepay/mobile 나이스페이 결제 승인(모바일) 추가
-    //   - POST /api/pay/nicepay/pc 나이스페이 결제 승인(PC) 추가
-    //   - POST /api/cert/secukit-one/logs 공동인증 로그 저장 추가
-    //   - POST /api/join/ins-stock-no/:joinId 증권번호 발급 추가
-    //   - POST /api/join/list 가입 보험 내역 조회 추가
-    //   - POST /api/join/ins-join-file/:joinId 가입확인서 생성 추가
-    //   - GET /api/claim/check/:joinId 사고접수 가능 여부 체크 추가
-    //   - POST /api/claim 사고접수 정보 저장 추가
-
-    //   2024-06-28 수정사항
-    //   - PUT /api/join/:joinId 가입신청 정보 수정 추가
-    //   - GET /api/claim/check 사고접수 가능 여부 체크 수정
-    //     - 파라미터 수정
-    //   - GET /api/check-site 사이트 정보 조회 추가
-    //   - POST /api/sms/send 문자 발송 추가
-    //   - GET /api/plan/biz-type/list 업종 전체 목록 추가
-    //   - GET /api/plan/biz-type 업종 매칭 추가
-
-    //   2024-07-01 수정사항
-    //   - GET /api/plan/check-biz-no 사업자정보 조회 추가
-    //   - GET /api/plan/check-biz-type 업종 가입 가능 여부 체크 추가
-    //   - GET /api/terms 약관 동의 내용 조회 추가
-    //   - POST /api/terms/logs 약관 동의 로그 저장 추가
-    //   - GET /api/plan/cost 보상한도별 보험료 조회 수정
-    //     - 보장내용 조회 추가
-
-    //   2024-07-05 수정사항
-    //   - POST /api/join/upload/sme-cert 소기업 확인서 등록 추가
-
-    //   2024-07-08 수정사항
-    //   - POST /api/sms/send/alimtalk 알림톡 발송 추가
-    //   - POST /api/sms/send-code 문자 인증번호 발송 추가
-
-    //   2024-07-09 수정사항
-    //   - GET /api/cert/secukit-one/logs/:athNo 공동인증 로그 조회 추가
-
-    //   2024-07-10 수정사항
-    //   - POST /api/pay/nicepay/cancel 나이스페이 결제 취소 추가
-
-    //   2024-07-29 수정사항
-    //   - api url version 추가
-    //   - GET /api/v1/pay/check-biz-type 업종 가입 가능 여부 체크 수정
-    //     - 요청 총 근로자수(선택), 연간매출액(선택) 추가
-    //     - 응답 수정
-
-    //   2024-07-30 수정사항
-    //   - GET /api/v1/plan/question/list 질문서 내용 조회 추가
+    //   2024-08-20 수정사항
     //   - GET /api/v1/plan/cost 보상한도별 보험료 조회 및 보장내용 조회 수정
-    //     - 요청 플랜ID 추가
-    //     - 응답코드 추가
-    //   - POST /api/v1/join 가입신청 정보 저장, PUT /api/v1/join/:joinId 가입신청 정보 수정 수정
-    //     - 요청 피보험자 법인등록번호, 국적, 설립일, 연인금 총액 추가
-    //     - 요청 매출액 1000억원 제한 삭제
-    //     - 요청 근로자수 49인 이하 제한 삭제
-    //     - 요청 보험시작일시, 보험만료일시 필수 -> 선택
-
-    //   2024-07-31 수정사항
-    //   - GET /api/v1/pay/check-biz-type 업종 가입 가능 여부 체크 수정
-    //     - 응답 보상한도 수정
-    //   - POST /api/v1/join 가입신청 정보 저장, PUT /api/v1/join/:joinId 가입신청 정보 수정 수정
-    //     - 요청 질문서 답변 추가
-    //     - 요청 자회사 가입여부, 자회사 담보 목록 추가
+    //     - 요청 연간매출액 추가
     // `,
     // )
-    .setDescription(
-      `
-      2024-08-20 수정사항
-      - GET /api/v1/plan/cost 보상한도별 보험료 조회 및 보장내용 조회 수정
-        - 요청 연간매출액 추가
-    `,
-    )
     .setVersion('1.0.0')
     //JWT 토큰 설정
     // .addBearerAuth(
@@ -159,13 +78,15 @@ async function bootstrap() {
     //   },
     //   'refreshToken',
     // )
-    .addTag('ins/plan', '보험 플랜')
-    .addTag('ins/join', '보험 가입')
-    .addTag('ins/claim', '보험 사고접수')
-    .addTag('cert', '인증')
-    .addTag('pay', '결제')
-    .addTag('terms', '약관')
-    .addTag('sms', '문자')
+    .addTag('building', '건물')
+    .addTag('ins/dsf-six', '풍수해6')
+    // .addTag('ins/plan', '보험 플랜')
+    // .addTag('ins/join', '보험 가입')
+    // .addTag('ins/claim', '보험 사고접수')
+    // .addTag('cert', '인증')
+    // .addTag('pay', '결제')
+    // .addTag('terms', '약관')
+    // .addTag('sms', '문자')
     .addTag('common', '공통')
     .build();
 

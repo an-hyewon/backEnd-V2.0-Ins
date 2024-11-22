@@ -2,10 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity({ name: 'client_log', comment: '클라이언트 로그 테이블' })
+@Index(['serverHost'])
+@Index(['username'])
 export class ClientLog {
   @PrimaryGeneratedColumn({ name: 'id', type: 'int', unsigned: true })
   id: number;

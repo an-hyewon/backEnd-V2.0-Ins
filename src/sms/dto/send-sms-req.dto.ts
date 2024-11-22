@@ -15,7 +15,7 @@ export class SendSmsReqDto {
   @Transform(({ value }) => value?.trim())
   @MaxLength(100)
   @ApiProperty({ description: '수신자 휴대폰번호' })
-  receivers: string;
+  receiver: string;
 
   @IsNotEmpty()
   @IsString()
@@ -46,20 +46,21 @@ export class SendSmsReqDto {
   @IsString()
   @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({ description: '발신자 번호' })
-  sender?: string = '15229323';
+  sender?: string = process.env.ALIGO_SENDER;
 
   @IsOptional()
   @IsString()
   @Transform(({ value }) => value?.trim())
-  @ApiPropertyOptional({ description: '참조 키값' })
-  referIdx?: string;
+  @ApiPropertyOptional({ description: '참조 ID' })
+  referId?: string;
 
-  // @IsOptional()
-  // @IsString()
-  // @IsIn(['JOIN', 'UNPAID_NOTI'])
-  // @Transform(({ value }) => value?.trim())
-  // @ApiPropertyOptional({
-  //   description: '메시지 내용 타입(JOIN: 가입완료, UNPAID_NOTI: 미결제 알림)',
-  // })
-  // messageType?: string;
+  @IsOptional()
+  @IsString()
+  @IsIn(['JOIN', 'JOIN_PDF', 'DBANK'])
+  @Transform(({ value }) => value?.trim())
+  @ApiPropertyOptional({
+    description:
+      '메시지 내용 타입(JOIN: 가입완료, JOIN_PDF: 가입증권 요청, DBANK: 무통장입금 안내)',
+  })
+  messageType?: string;
 }

@@ -82,31 +82,31 @@ export class AppController {
   //   return this.appService.test();
   // }
 
-  @Get('refer-idx')
-  @ApiOperation({
-    summary: 'referIdx 생성',
-    description: `
-    제일 처음 생성
-    
-    응답코드
-    - 200000 (성공)
-    `,
-  })
-  createReferIdx(@Request() req) {
-    return this.appService.createReferIdx();
-  }
+  // @Get('refer-idx')
+  // @ApiOperation({
+  //   summary: 'referIdx 생성',
+  //   description: `
+  //   제일 처음 생성
 
-  @Get('check-site')
-  @ApiOperation({
-    summary: '사이트 정보 조회',
-    description: `
-    응답코드
-    - 200000 (성공)
-    `,
-  })
-  findSiteInfo(@Request() req, @Query() query: UrlReqDto) {
-    return this.appService.findSiteInfo(req, query);
-  }
+  //   응답코드
+  //   - 200000 (성공)
+  //   `,
+  // })
+  // createReferIdx(@Request() req) {
+  //   return this.appService.createReferIdx();
+  // }
+
+  // @Get('check-site')
+  // @ApiOperation({
+  //   summary: '사이트 정보 조회',
+  //   description: `
+  //   응답코드
+  //   - 200000 (성공)
+  //   `,
+  // })
+  // findSiteInfo(@Request() req, @Query() query: UrlReqDto) {
+  //   return this.appService.findSiteInfo(req, query);
+  // }
 
   // @Post('upload/excel')
   // @ApiConsumes('multipart/form-data')
@@ -159,22 +159,34 @@ export class AppController {
   //   return await this.appService.sendExcelMailTest();
   // }
 
-  @Get('send/ins-cost-notice/:joinId')
-  @ApiParam({
-    name: 'joinId',
-    description: '가입 ID',
-    required: true,
-  })
+  // @Get('send/ins-cost-notice/:joinId')
+  // @ApiParam({
+  //   name: 'joinId',
+  //   description: '가입 ID',
+  //   required: true,
+  // })
+  // @ApiOperation({
+  //   summary: '보험료 안내 알림톡 & 메일 발송',
+  //   description: `
+  //   응답코드
+  //   - 200000 (성공)
+  //   - 200020 (검색 결과 없음)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async sendPremCmptDoneNotice(@Param('joinId', ParseIntPipe) joinId: number) {
+  //   return await this.appService.sendPremCmptDoneNotice(joinId);
+  // }
+
+  @Get('update-biz-status')
   @ApiOperation({
-    summary: '보험료 안내 알림톡 & 메일 발송',
+    summary: '',
     description: `
     응답코드
     - 200000 (성공)
-    - 200020 (검색 결과 없음)
-    - 400000 (유효성 체크 오류)
     `,
   })
-  async sendPremCmptDoneNotice(@Param('joinId', ParseIntPipe) joinId: number) {
-    return await this.appService.sendPremCmptDoneNotice(joinId);
+  updateBizStatus(@Request() req) {
+    return this.appService.updateBizStatus();
   }
 }

@@ -9,7 +9,6 @@ import { ValidationPipe } from './common/pipe/validation.pipe';
 import { TermsModule } from './terms/terms.module';
 import { ClientLog } from './common/entities/client-log.entity';
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor';
-import { TasksModule } from './tasks/tasks.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PayModule } from './pay/pay.module';
 import { CertModule } from './cert/cert.module';
@@ -24,6 +23,9 @@ import express from 'express';
 import { FilesMiddleware } from './common/files/files.middleware';
 import { MailModule } from './mail/mail.module';
 import { CcaliJoin } from './insurance/join/entities/ccali-join.entity';
+import { BuildingModule } from './building/building.module';
+import { DsfSixModule } from './insurance/dsf-six/dsf-six.module';
+import { DsfSixGruopJoinUpload } from './insurance/join/entities/dsf-six-group-join-upload.entity';
 
 /**
  *  Life Cycle ( MiddleWare > Guard > Interceptor > pipe > [ Controller > Service ] > Interceptor > ExceptionFilter )
@@ -71,10 +73,9 @@ import { CcaliJoin } from './insurance/join/entities/ccali-join.entity';
       synchronize: false,
       logging: true,
     }),
-    TypeOrmModule.forFeature([ClientLog, CcaliJoin]),
+    TypeOrmModule.forFeature([CcaliJoin, DsfSixGruopJoinUpload]),
     ScheduleModule.forRoot(),
     CommonModule,
-    TasksModule,
     JoinModule,
     TermsModule,
     PayModule,
@@ -83,6 +84,8 @@ import { CcaliJoin } from './insurance/join/entities/ccali-join.entity';
     PlanModule,
     ClaimModule,
     MailModule,
+    BuildingModule,
+    DsfSixModule,
   ],
   controllers: [AppController],
   providers: [
