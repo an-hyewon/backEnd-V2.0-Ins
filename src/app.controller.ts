@@ -180,13 +180,37 @@ export class AppController {
 
   @Get('update-biz-status')
   @ApiOperation({
-    summary: '',
+    summary: '풍6 시장 단체가입 사업자번호 휴/폐업 체크',
     description: `
     응답코드
     - 200000 (성공)
     `,
   })
-  updateBizStatus(@Request() req) {
-    return this.appService.updateBizStatus();
+  updateDsf6GroupBizStatus(@Request() req) {
+    return this.appService.updateDsf6GroupBizStatus();
+  }
+
+  @Get('update-address')
+  @ApiOperation({
+    summary: '풍6 시장 단체가입 주소 정제',
+    description: `
+    응답코드
+    - 200000 (성공)
+    `,
+  })
+  updateDsf6GroupAddress(@Request() req) {
+    return this.appService.updateDsf6GroupAddress();
+  }
+
+  @Get('update-refind-address')
+  @ApiOperation({
+    summary: '풍6 시장 단체가입 주소 건축물대장 조회',
+    description: `
+    응답코드
+    - 200000 (성공)
+    `,
+  })
+  updateDsf6GroupARefineddress(@Request() req) {
+    return this.appService.updateDsf6GroupRefineAddress();
   }
 }

@@ -459,6 +459,29 @@ export const queries = {
     `,
     /* 설계내역 조회 */
   },
+  DsfSix: {
+    /* 풍6 시장 단체가입 조회 */
+    selectDsfSixGruopJoinNotSearchAddress: `
+      SELECT *
+      FROM dsf_six_gruop_join_upload
+      WHERE 1=1
+            AND id >= 46
+            AND zip_cd IS NULL
+--       LIMIT 1
+    `,
+
+    selectDsfSixGruopJoinNotRefineAddress: `
+      SELECT *
+      FROM dsf_six_gruop_join_upload
+      WHERE 1=1
+            AND id >= 46
+            AND id NOT IN (49,74,75,103)
+            AND zip_cd IS NOT NULL
+            AND mgm_bldrgst_pk IS NULL
+      LIMIT 1
+    `,
+    /* 풍6 시장 단체가입 조회 */
+  },
   User: {
     /* 설계사 정보 조회 */
     selectUserByUsername: `

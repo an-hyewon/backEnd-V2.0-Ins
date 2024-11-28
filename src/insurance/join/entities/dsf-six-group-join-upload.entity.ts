@@ -333,6 +333,15 @@ export class DsfSixGruopJoinUpload {
   mgmBldrgstPk: string;
 
   @Column({
+    name: 'mgm_bldrgst_expos',
+    comment: '건축물대장 전유부 PK',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  mgmBldrgstExpos: string;
+
+  @Column({
     name: 'biznum_status_ck',
     comment:
       '사업자등록 상태조회(휴폐업조회) 여부(N:조회X Y:계속사업자 F:휴폐업자)',

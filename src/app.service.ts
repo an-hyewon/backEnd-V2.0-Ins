@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Connection, Repository } from 'typeorm';
+import { Connection, MoreThanOrEqual, Repository } from 'typeorm';
 import * as dayjs from 'dayjs';
 import * as ExcelJS from 'exceljs';
 import { join } from 'path';
@@ -16,6 +16,8 @@ import { CcaliInsCostNotice } from './insurance/join/entities/ccali-ins-cost-not
 import { EmailSendLogs } from './mail/entities/email-send-logs.entity';
 import { CcaliJoin } from './insurance/join/entities/ccali-join.entity';
 import { DsfSixGruopJoinUpload } from './insurance/join/entities/dsf-six-group-join-upload.entity';
+import { queries } from './common/database/queries.sql';
+import axios from 'axios';
 
 @Injectable()
 export class AppService {
@@ -206,7 +208,7 @@ export class AppService {
     return responseResult;
   }
 
-  async updateBizStatus() {
+  async updateDsf6GroupBizStatus() {
     let statusCode = 200000;
     let returnMsg = 'ok';
 
@@ -269,8 +271,121 @@ export class AppService {
   async selectDsfSixGruopJoinUploads() {
     return await this.dsfSixGruopJoinUploadRepository.find({
       where: {
-        biznumStatusCk: 'F',
+        // biznumStatusCk: 'F',
+        // id: MoreThanOrEqual(46),
+        // biznumStatusCk: 'N',
+        id: 70,
       },
     });
+  }
+
+  async selectDsfSixGruopJoinUploads2() {
+    let query = queries.DsfSix.selectDsfSixGruopJoinNotSearchAddress;
+    const parmas = [];
+    const listData = await this.commonService.startRawQuery(query, parmas);
+
+    return listData;
+  }
+
+  async selectDsfSixGruopJoinUploads3() {
+    let query = queries.DsfSix.selectDsfSixGruopJoinNotRefineAddress;
+    const parmas = [];
+    const listData = await this.commonService.startRawQuery(query, parmas);
+
+    return listData;
+  }
+
+  async updateDsf6GroupAddress() {
+    let statusCode = 200000;
+    let returnMsg = 'ok';
+
+    let result = {};
+    let addrInfo: any = {};
+
+    const data = await this.selectDsfSixGruopJoinUploads2();
+    for (let index = 0; index < data.length; index++) {
+      const element = data[index];
+
+      // 주소 정제
+      // 우편번호, 도로명주소, 지번주소, 상세주소, 시도, citycode, pnu코드, 건축물대장 표제부 pk
+      let address = element.address + ' ' + element.address_detail;
+      addrInfo = await this.commonService.searchAddrApi(address);
+      console.log('index: ', index, ' addrInfo', addrInfo);
+
+      if (addrInfo?.query != null) {
+        await this.dsfSixGruopJoinUploadRepository.update(
+          {
+            id: element.id,
+          },
+          {
+            zipCd: addrInfo?.zonecode,
+            roadAddr: addrInfo?.roadAddressName,
+            jibunAddr: addrInfo?.addressName,
+            addrDetail: addrInfo?.addressDetail,
+            sido: addrInfo?.sido,
+            sigunguCd: addrInfo?.sigunguCd,
+            bjdongCd: addrInfo?.bjdongCd,
+            // platGbCd: addrInfo?.platGbCd,
+            bun: addrInfo?.bun,
+            ji: addrInfo?.ji,
+          },
+        );
+      }
+    }
+
+    let responseResult = {
+      code: statusCode,
+      message: returnMsg,
+      result,
+    };
+
+    return responseResult;
+  }
+
+  async updateDsf6GroupRefineAddress() {
+    let statusCode = 200000;
+    let returnMsg = 'ok';
+
+    let result = {};
+
+    const data = await this.selectDsfSixGruopJoinUploads3();
+    for (let index = 0; index < data.length; index++) {
+      const element = data[index];
+
+      // 주소 정제
+      // citycode, pnu코드, 건축물대장 표제부 pk
+      let url = `https://dev-server.15.insboon.com/api/v1/common/all-check-addr?addr=${element.road_addr}&locationHref=https://dsf6.mall.insboon.com/dsf6/JoinRequestAddress`;
+      let responseData;
+      const getAddress = await axios
+        .get(url)
+        .then(async (response) => {
+          console.log('response', response.data);
+          responseData = {
+            ...response.data,
+            responseCode: response.status,
+            responseYn: response.data.code == 200000 ? 'Y' : 'N',
+            responseDt: dayjs().toDate(),
+          };
+        })
+        .catch(async (error) => {
+          console.log('error', error.message);
+          responseData = {
+            responseYn: 'N',
+            responseCode: error.response.status,
+            message: error.data.message,
+            responseDt: dayjs().toDate(),
+          };
+        });
+
+      result = responseData;
+    }
+
+    let responseResult = {
+      code: statusCode,
+      message: returnMsg,
+      result,
+    };
+
+    return responseResult;
   }
 }
