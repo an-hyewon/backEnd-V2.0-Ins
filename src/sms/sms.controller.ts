@@ -25,9 +25,9 @@ export class SmsController {
     private readonly commonService: CommonService,
   ) {}
 
-  @Post('send/alimtalk')
+  @Post('send/alimtalk/boon')
   @ApiOperation({
-    summary: '알림톡 발송',
+    summary: '보온 알림톡 발송',
     description: `
     응답코드
     - 201000 (성공)
@@ -39,33 +39,33 @@ export class SmsController {
     return this.commonService.sendKakaoAlimtalk(body);
   }
 
-  @Post('send-code')
-  @ApiOperation({
-    summary: '문자 인증번호 발송',
-    description: `
-    응답코드
-    - 201000 (성공)
-    - 201010 (발송 실패)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async sendSmsCode(@Request() req, @Body() body: SendSmsCodeReqDto) {
-    return this.smsService.sendSmsCode(body);
-  }
+  // @Post('send-code')
+  // @ApiOperation({
+  //   summary: '문자 인증번호 발송',
+  //   description: `
+  //   응답코드
+  //   - 201000 (성공)
+  //   - 201010 (발송 실패)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async sendSmsCode(@Request() req, @Body() body: SendSmsCodeReqDto) {
+  //   return this.smsService.sendSmsCode(body);
+  // }
 
-  @Post('send')
-  @ApiOperation({
-    summary: '문자 발송',
-    description: `
-    응답코드
-    - 201000 (성공)
-    - 201010 (발송 실패)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async sendSms(@Request() req, @Body() body: SendSmsReqDto) {
-    return this.commonService.sendSms(body);
-  }
+  // @Post('send')
+  // @ApiOperation({
+  //   summary: '문자 발송',
+  //   description: `
+  //   응답코드
+  //   - 201000 (성공)
+  //   - 201010 (발송 실패)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async sendSms(@Request() req, @Body() body: SendSmsReqDto) {
+  //   return this.commonService.sendSms(body);
+  // }
 
   // @Post('alimtalk-template')
   // @ApiOperation({

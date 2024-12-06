@@ -37,80 +37,80 @@ export class PayController {
   //   return this.payService.getNicepayToken();
   // }
 
-  @Get('nicepay/logs/:moid')
-  @ApiParam({
-    name: 'moid',
-    description: '상점주문번호',
-    required: true,
-  })
-  @ApiOperation({
-    summary: '나이스페이 결제 결과 로그 조회',
-    description: `
-    응답코드
-    - 200000 (성공)
-    - 200010 (결과 없음)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async getNicepayPayLogs(@Request() req, @Param('moid') moid: string) {
-    return await this.payService.getNicepayPayLogs(moid.trim());
-  }
+  // @Get('nicepay/logs/:moid')
+  // @ApiParam({
+  //   name: 'moid',
+  //   description: '상점주문번호',
+  //   required: true,
+  // })
+  // @ApiOperation({
+  //   summary: '나이스페이 결제 결과 로그 조회',
+  //   description: `
+  //   응답코드
+  //   - 200000 (성공)
+  //   - 200010 (결과 없음)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async getNicepayPayLogs(@Request() req, @Param('moid') moid: string) {
+  //   return await this.payService.getNicepayPayLogs(moid.trim());
+  // }
 
-  @Post('nicepay/cancel')
-  @ApiOperation({
-    summary: '나이스페이 결제 취소',
-    description: `
-    응답코드
-    - 201000 (성공)
-    - 201010 (결제 실패)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async requestPaymentCancelNicepay(
-    @Request() req,
-    @Body() body: CancelPaymentNicepayReqDto,
-  ) {
-    return await this.payService.requestCancelPaymentNicepay(req, body);
-  }
+  // @Post('nicepay/cancel')
+  // @ApiOperation({
+  //   summary: '나이스페이 결제 취소',
+  //   description: `
+  //   응답코드
+  //   - 201000 (성공)
+  //   - 201010 (결제 실패)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async requestPaymentCancelNicepay(
+  //   @Request() req,
+  //   @Body() body: CancelPaymentNicepayReqDto,
+  // ) {
+  //   return await this.payService.requestCancelPaymentNicepay(req, body);
+  // }
 
-  @Post('nicepay/mobile')
-  @ApiOperation({
-    summary: '나이스페이 결제 승인(모바일)',
-    description: `
-    응답코드
-    - 201000 (성공)
-    - 201010 (결제 실패)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async requestAuthPaymentNicepayMobile(
-    @Request() req,
-    @Body() body: AuthPaymentNicepayReqDto,
-    @Res() res: Response,
-  ) {
-    const nicepay = await this.payService.requestAuthPaymentNicepay(req, body);
-    console.log('nicepay mobile', nicepay);
-    const url = nicepay.result.pay;
-    // return res.redirect(HttpStatus.PERMANENT_REDIRECT, url);
-    return res.redirect(HttpStatus.FOUND, url);
-  }
+  // @Post('nicepay/mobile')
+  // @ApiOperation({
+  //   summary: '나이스페이 결제 승인(모바일)',
+  //   description: `
+  //   응답코드
+  //   - 201000 (성공)
+  //   - 201010 (결제 실패)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async requestAuthPaymentNicepayMobile(
+  //   @Request() req,
+  //   @Body() body: AuthPaymentNicepayReqDto,
+  //   @Res() res: Response,
+  // ) {
+  //   const nicepay = await this.payService.requestAuthPaymentNicepay(req, body);
+  //   console.log('nicepay mobile', nicepay);
+  //   const url = nicepay.result.pay;
+  //   // return res.redirect(HttpStatus.PERMANENT_REDIRECT, url);
+  //   return res.redirect(HttpStatus.FOUND, url);
+  // }
 
-  @Post('nicepay/pc')
-  @ApiOperation({
-    summary: '나이스페이 결제 승인(PC)',
-    description: `
-    응답코드
-    - 201000 (성공)
-    - 201010 (결제 실패)
-    - 400000 (유효성 체크 오류)
-    `,
-  })
-  async requestAuthPaymentNicepayPc(
-    @Request() req,
-    @Body() body: AuthPaymentNicepayReqDto,
-  ) {
-    return await this.payService.requestAuthPaymentNicepay(req, body);
-  }
+  // @Post('nicepay/pc')
+  // @ApiOperation({
+  //   summary: '나이스페이 결제 승인(PC)',
+  //   description: `
+  //   응답코드
+  //   - 201000 (성공)
+  //   - 201010 (결제 실패)
+  //   - 400000 (유효성 체크 오류)
+  //   `,
+  // })
+  // async requestAuthPaymentNicepayPc(
+  //   @Request() req,
+  //   @Body() body: AuthPaymentNicepayReqDto,
+  // ) {
+  //   return await this.payService.requestAuthPaymentNicepay(req, body);
+  // }
 
   // @Post('nicepay/request')
   // @Render('pay-request')

@@ -17,32 +17,60 @@ import { CcaliClaim } from 'src/insurance/claim/entities/ccali-claim.entity';
 import { CcaliAnswerResponse } from 'src/insurance/plan/entities/ccali-answer-response.entity';
 import { CcaliInsCostNotice } from 'src/insurance/join/entities/ccali-ins-cost-notice.entity';
 import { MasterInsStockNo } from 'src/insurance/join/entities/master-ins-stock-no.entity';
+import { OauthToken } from './entities/oauth-token.entity';
+import { MeritzDliMfliRetrieveSnoLog } from './entities/meritz-dli-mfli-retrieve-sno-log.entity';
+import { MeritzDliMfliPremCmptLog } from './entities/meritz-dli-mfli-prem-cmpt-log.entity';
+import { MeritzDliMfliGrupCtrCcluLog } from './entities/meritz-dli-mfli-grup-ctr-cclu-log.entity';
+import { KbDliMfliRetrieveSnoLog } from './entities/kb-dli-mfli-retrieve-sno-log.entity';
+import { KbDliMfliPremCmptLog } from './entities/kb-dli-mfli-prem-cmpt-log.entity';
+import { KbDliMfliGrupCtrCcluLog } from './entities/kb-dli-mfli-grup-ctr-cclu-log.entity';
+import { RegionDepthNm } from './entities/region-depth-nm.entity';
+import { InsuratorEstimateFile } from 'src/insurance/join/entities/insurator-estimate-file.entity';
+import { ClientLog } from './entities/client-log.entity';
+import { AdminUser } from './entities/admin-user.entity';
+import { BoonCounseling } from './entities/boon-counseling.entity';
+import { BoonSmsSendLog } from 'src/sms/entities/boon-sms-send-logs.entity';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      InsCom,
-      InsProd,
-      SiteInfo,
-      InsComRatioInfo,
-      CcaliUploads,
-      CcaliJoin,
-      NtsBizType,
-      CcaliBizTypeView,
-      PlanGuaranteeContent,
-      AlimtalkTemplate,
-      SmsSendLogs,
-      CcaliJoin,
-      NtsBizType,
-      CcaliBizTypeView,
-      PlanGuaranteeContent,
-      CcaliJoinSubCompany,
-      CcaliClaim,
-      CcaliAnswerResponse,
-      CcaliInsCostNotice,
-      MasterInsStockNo,
-    ]),
+    TypeOrmModule.forFeature(
+      [
+        ClientLog,
+        InsCom,
+        InsProd,
+        SiteInfo,
+        InsComRatioInfo,
+        SmsSendLogs,
+        AlimtalkTemplate,
+        OauthToken,
+
+        MeritzDliMfliRetrieveSnoLog,
+        MeritzDliMfliPremCmptLog,
+        MeritzDliMfliGrupCtrCcluLog,
+        KbDliMfliRetrieveSnoLog,
+        KbDliMfliPremCmptLog,
+        KbDliMfliGrupCtrCcluLog,
+        RegionDepthNm,
+        InsuratorEstimateFile,
+
+        CcaliUploads,
+        CcaliJoin,
+        NtsBizType,
+        CcaliBizTypeView,
+        PlanGuaranteeContent,
+        CcaliJoinSubCompany,
+        CcaliClaim,
+        CcaliAnswerResponse,
+        CcaliInsCostNotice,
+        MasterInsStockNo,
+
+        AdminUser,
+        BoonCounseling,
+      ],
+      'default',
+    ),
+    TypeOrmModule.forFeature([BoonSmsSendLog], 'smsDbConnection'),
   ],
   providers: [CommonService],
   exports: [CommonService],

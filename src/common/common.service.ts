@@ -1,10 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as dayjs from 'dayjs';
 import * as duration from 'dayjs/plugin/duration';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import {
+  Connection,
+  IsNull,
+  LessThanOrEqual,
+  MoreThan,
+  Not,
+  Repository,
+} from 'typeorm';
 import { v4 } from 'uuid';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -26,9 +33,7 @@ import { UrlReqDto } from './dto/url-req.dto';
 import { CreateCcaliUploadsResultReqDto } from './dto/create-ccali-uploads-result-req.dto';
 import { AlimtalkTemplateButton } from 'src/sms/entities/alimtalk-template-button.entity';
 import { AlimtalkTemplate } from 'src/sms/entities/alimtalk-template.entity';
-import { SendSmsReqDto } from 'src/sms/dto/send-sms-req.dto';
 import { SmsSendLogs } from 'src/sms/entities/sms-send-logs.entity';
-import { SendAlimtalkReqDto } from 'src/sms/dto/send-alimtalk-req.dto';
 import { costFormatter } from './utils/formatter-utils';
 import { JoinStatus } from './entities/join-stts-cd.entity';
 import { PayStatus } from './entities/pay-stts-cd.entity';
@@ -49,64 +54,166 @@ import { CcaliJoinPayLogs } from 'src/insurance/join/entities/ccali-join-pay-log
 import { CcaliQuestionAnswerTemplate } from 'src/insurance/plan/entities/ccali-question-answer-template.entity';
 import { CcaliInsCostNotice } from 'src/insurance/join/entities/ccali-ins-cost-notice.entity';
 import { MasterInsStockNo } from 'src/insurance/join/entities/master-ins-stock-no.entity';
+import { queries } from './database/queries.sql';
+import { response } from './constants/response.constant';
+import { OauthToken } from './entities/oauth-token.entity';
+import { MeritzDliMfliRetrieveSnoLog } from './entities/meritz-dli-mfli-retrieve-sno-log.entity';
+import { MeritzDliMfliPremCmptLog } from './entities/meritz-dli-mfli-prem-cmpt-log.entity';
+import { MeritzDliMfliGrupCtrCcluLog } from './entities/meritz-dli-mfli-grup-ctr-cclu-log.entity';
+import { KbDliMfliRetrieveSnoLog } from './entities/kb-dli-mfli-retrieve-sno-log.entity';
+import { KbDliMfliPremCmptLog } from './entities/kb-dli-mfli-prem-cmpt-log.entity';
+import { KbDliMfliGrupCtrCcluLog } from './entities/kb-dli-mfli-grup-ctr-cclu-log.entity';
+import { ClientLog } from './entities/client-log.entity';
+import { CreateClientLogReqDto } from './dto/create-client-log-req.dto';
+import { UpdateClientLogReqDto } from './dto/update-client-log-req.dto';
+import { SendAlimtalkDto } from 'src/sms/dto/send-alimtalk.dto';
+import { SendSmsReqDto } from 'src/sms/dto/send-sms-req.dto';
+import { BoonCounseling } from './entities/boon-counseling.entity';
+import { AdminUser } from './entities/admin-user.entity';
+import { BoonSmsSendLog } from 'src/sms/entities/boon-sms-send-logs.entity';
 
 @Injectable()
 export class CommonService {
   constructor(
-    @InjectRepository(InsCom)
+    private readonly connection: Connection,
+
+    @InjectRepository(ClientLog, 'default')
+    private clientLogRepository: Repository<ClientLog>,
+    @InjectRepository(InsCom, 'default')
     private insComRepository: Repository<InsCom>,
-    @InjectRepository(InsProd)
+    @InjectRepository(InsProd, 'default')
     private insProdRepository: Repository<InsProd>,
-    @InjectRepository(SiteInfo)
+    @InjectRepository(SiteInfo, 'default')
     private siteInfoRepository: Repository<SiteInfo>,
-    @InjectRepository(InsComRatioInfo)
+    @InjectRepository(InsComRatioInfo, 'default')
     private insComRatioInfoRepository: Repository<InsComRatioInfo>,
-    @InjectRepository(CcaliUploads)
-    private ccaliUploadsRepository: Repository<CcaliUploads>,
-    @InjectRepository(AlimtalkTemplate)
-    private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
-    @InjectRepository(SmsSendLogs)
+    @InjectRepository(SmsSendLogs, 'default')
     private smsSendLogsRepository: Repository<SmsSendLogs>,
-    @InjectRepository(CcaliJoin)
+    @InjectRepository(AlimtalkTemplate, 'default')
+    private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
+    @InjectRepository(OauthToken, 'default')
+    private oauthTokenRepository: Repository<OauthToken>,
+
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
-    @InjectRepository(NtsBizType)
+    @InjectRepository(CcaliUploads, 'default')
+    private ccaliUploadsRepository: Repository<CcaliUploads>,
+    @InjectRepository(NtsBizType, 'default')
     private ntsBizTypeRepository: Repository<NtsBizType>,
-    @InjectRepository(CcaliBizTypeView)
+    @InjectRepository(CcaliBizTypeView, 'default')
     private ccaliBizTypeRepository: Repository<CcaliBizTypeView>,
-    @InjectRepository(PlanGuaranteeContent)
+    @InjectRepository(PlanGuaranteeContent, 'default')
     private planGuaranteeContentRepository: Repository<PlanGuaranteeContent>,
-    @InjectRepository(CcaliJoinSubCompany)
+    @InjectRepository(CcaliJoinSubCompany, 'default')
     private ccaliJoinSubCompanyRepository: Repository<CcaliJoinSubCompany>,
-    @InjectRepository(CcaliClaim)
+    @InjectRepository(CcaliClaim, 'default')
     private ccaliClaimRepository: Repository<CcaliClaim>,
-    @InjectRepository(CcaliAnswerResponse)
+    @InjectRepository(CcaliAnswerResponse, 'default')
     private ccaliAnswerResponseRepository: Repository<CcaliAnswerResponse>,
-    @InjectRepository(CcaliInsCostNotice)
+    @InjectRepository(CcaliInsCostNotice, 'default')
     private ccaliInsCostNoticeRepository: Repository<CcaliInsCostNotice>,
-    @InjectRepository(MasterInsStockNo)
+    @InjectRepository(MasterInsStockNo, 'default')
     private masterInsStockNoRepository: Repository<MasterInsStockNo>,
+
+    @InjectRepository(MeritzDliMfliRetrieveSnoLog, 'default')
+    private meritzDliMfliRetrieveSnoLogRepository: Repository<MeritzDliMfliRetrieveSnoLog>,
+    @InjectRepository(MeritzDliMfliPremCmptLog, 'default')
+    private meritzDliMfliPremCmptLogRepository: Repository<MeritzDliMfliPremCmptLog>,
+    @InjectRepository(MeritzDliMfliGrupCtrCcluLog, 'default')
+    private meritzDliMfliGrupCtrCcluLogRepository: Repository<MeritzDliMfliGrupCtrCcluLog>,
+
+    @InjectRepository(KbDliMfliRetrieveSnoLog, 'default')
+    private kbDliMfliRetrieveSnoLogRepository: Repository<KbDliMfliRetrieveSnoLog>,
+    @InjectRepository(KbDliMfliPremCmptLog, 'default')
+    private kbDliMfliPremCmptLogRepository: Repository<KbDliMfliPremCmptLog>,
+    @InjectRepository(KbDliMfliGrupCtrCcluLog, 'default')
+    private kbDliMfliGrupCtrCcluLogRepository: Repository<KbDliMfliGrupCtrCcluLog>,
+
+    @InjectRepository(AdminUser, 'default')
+    private adminUserRepository: Repository<AdminUser>,
+    @InjectRepository(BoonCounseling, 'default')
+    private boonCounselingRepository: Repository<BoonCounseling>,
+
+    @InjectRepository(BoonSmsSendLog, 'smsDbConnection')
+    private boonSmsSendLogRepository: Repository<BoonSmsSendLog>,
   ) {}
 
-  storage = diskStorage({
-    destination: './uploads/profile', // 파일이 저장될 경로
-    filename: (req, file, callback) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = extname(file.originalname);
-      const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-      callback(null, filename);
-    },
-  });
+  async saveClientLog(data: CreateClientLogReqDto) {
+    return this.clientLogRepository.save(data);
+  }
 
-  getStorage() {
-    return diskStorage({
-      destination: './uploads/profile', // 파일이 저장될 경로
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = extname(file.originalname);
-        const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-        callback(null, filename);
-      },
-    });
+  async updateClientLog(id: number, data: UpdateClientLogReqDto) {
+    return this.clientLogRepository.update(id, data);
+  }
+
+  async saveMeritzDliMfliRetrieveSnoLog(
+    data: Partial<MeritzDliMfliRetrieveSnoLog>,
+  ) {
+    return this.meritzDliMfliRetrieveSnoLogRepository.save(data);
+  }
+
+  async updateMeritzDliMfliRetrieveSnoLog(
+    id: number,
+    data: Partial<MeritzDliMfliRetrieveSnoLog>,
+  ) {
+    return this.meritzDliMfliRetrieveSnoLogRepository.update(id, data);
+  }
+
+  async saveMeritzDliMfliPremCmptLog(data: Partial<MeritzDliMfliPremCmptLog>) {
+    return this.meritzDliMfliPremCmptLogRepository.save(data);
+  }
+
+  async updateMeritzDliMfliPremCmptLog(
+    id: number,
+    data: Partial<MeritzDliMfliPremCmptLog>,
+  ) {
+    return this.meritzDliMfliPremCmptLogRepository.update(id, data);
+  }
+
+  async saveMeritzDliMfliGrupCtrCcluLog(
+    data: Partial<MeritzDliMfliGrupCtrCcluLog>,
+  ) {
+    return this.meritzDliMfliGrupCtrCcluLogRepository.save(data);
+  }
+
+  async updateMeritzDliMfliGrupCtrCcluLog(
+    id: number,
+    data: Partial<MeritzDliMfliGrupCtrCcluLog>,
+  ) {
+    return this.meritzDliMfliGrupCtrCcluLogRepository.update(id, data);
+  }
+
+  async saveKbDliMfliRetrieveSnoLog(data: Partial<KbDliMfliRetrieveSnoLog>) {
+    return this.kbDliMfliRetrieveSnoLogRepository.save(data);
+  }
+
+  async updateKbDliMfliRetrieveSnoLog(
+    id: number,
+    data: Partial<KbDliMfliRetrieveSnoLog>,
+  ) {
+    return this.kbDliMfliRetrieveSnoLogRepository.update(id, data);
+  }
+
+  async saveKbDliMfliPremCmptLog(data: Partial<KbDliMfliPremCmptLog>) {
+    return this.kbDliMfliPremCmptLogRepository.save(data);
+  }
+
+  async updateKbDliMfliPremCmptLog(
+    id: number,
+    data: Partial<KbDliMfliPremCmptLog>,
+  ) {
+    return this.kbDliMfliPremCmptLogRepository.update(id, data);
+  }
+
+  async saveKbDliMfliGrupCtrCcluLog(data: Partial<KbDliMfliGrupCtrCcluLog>) {
+    return this.kbDliMfliGrupCtrCcluLogRepository.save(data);
+  }
+
+  async updateKbDliMfliGrupCtrCcluLog(
+    id: number,
+    data: Partial<KbDliMfliGrupCtrCcluLog>,
+  ) {
+    return this.kbDliMfliGrupCtrCcluLogRepository.update(id, data);
   }
 
   async handleCcaliSmeCertFileUpload(
@@ -1035,13 +1142,13 @@ export class CommonService {
     };
 
     const {
-      receivers,
+      receiver,
       message,
       reservedYn,
       reservedDate,
       reservedTime,
       sender,
-      referIdx,
+      // referIdx,
       // messageType,
     } = data;
 
@@ -1063,7 +1170,7 @@ export class CommonService {
 
   async funSendSms({
     sender,
-    receivers,
+    receiver,
     message,
     reservedYn,
     reservedDate,
@@ -1085,7 +1192,7 @@ export class CommonService {
       user_id: userId,
       sender,
       // receiver: receivers.join(','),
-      receiver: receivers,
+      receiver: receiver,
       msg: message,
       // 테스트모드
       testmode_yn: 'N',
@@ -1162,7 +1269,32 @@ export class CommonService {
     return await this.smsSendLogsRepository.save(entity);
   }
 
-  async sendKakaoAlimtalk(data: SendAlimtalkReqDto) {
+  async saveBoonSendSmsLogs(data: Partial<BoonSmsSendLog>) {
+    const entity = this.boonSmsSendLogRepository.create(data);
+    return await this.boonSmsSendLogRepository.save(entity);
+  }
+
+  async saveBoonCounseling(data: Partial<BoonCounseling>) {
+    if (data?.regId != null && data?.regId != 0) {
+      // 관리자 이름 조회
+      const adminData = await this.adminUserRepository.find({
+        where: {
+          id: data.regId,
+        },
+      });
+      if (adminData.length > 0) {
+        const entity = this.boonCounselingRepository.create({
+          ...data,
+          regNm: adminData[0]?.adminUserNm,
+        });
+        return await this.boonCounselingRepository.save(entity);
+      }
+    }
+    const entity = this.boonCounselingRepository.create(data);
+    return await this.boonCounselingRepository.save(entity);
+  }
+
+  async sendKakaoAlimtalk(data: SendAlimtalkDto, adminId?: number) {
     let statusCode = 201000;
     let returnMsg = 'ok';
     let result = {
@@ -1170,662 +1302,647 @@ export class CommonService {
     };
 
     const {
-      receivers,
+      receiver,
       reservedYn,
       reservedDate,
       reservedTime,
       sender,
+      insProdCd,
       joinId,
       messageType,
+      templateCd,
+      message,
+      buttons,
+      failSmsMessage,
+      testYn,
     } = data;
 
-    const ccaliJoin = await this.selectJoinListDetailByJoinId(
-      joinId,
-      'JoinFile',
-    );
-    console.log('ccaliJoin', ccaliJoin);
-    const ccaliInsJoinFileUrl = await this.funCreateInsJoinFileCcali(joinId);
-    console.log('ccaliInsJoinFileUrl', ccaliInsJoinFileUrl);
-    let insertPDFResult = '';
-    if (ccaliInsJoinFileUrl.responseCode == 0) {
-      insertPDFResult = ccaliInsJoinFileUrl.responseData.fileName;
+    if (message != null && message != '') {
+      if (templateCd == null || templateCd == '')
+        throw new BadRequestException('Validation Failed(templateCd)');
+      if (buttons == null || buttons == '')
+        throw new BadRequestException('Validation Failed(buttons)');
+      if (failSmsMessage == null || failSmsMessage == '')
+        throw new BadRequestException('Validation Failed(failSmsMessage)');
     }
+
+    // messageType, insProdCd 관리 테이블 있어야 함
+
+    // 가입내역 조회
+    const joinDetailData = await this.selectJoinDetailByJoinId(
+      joinId,
+      insProdCd,
+    );
+    console.log('joinDetailData', joinDetailData);
+    if (joinDetailData.length == 0) {
+      statusCode = 201020;
+      returnMsg = '가입 내역 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    }
+    const joinDetail = joinDetailData[0];
+    if (
+      messageType == 'JOIN_RJCT' &&
+      !(joinDetail?.joinCk == 'D' || joinDetail?.joinCk == 'E')
+    ) {
+      statusCode = 201020;
+      returnMsg = '가입 내역 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    } else if (
+      (messageType == 'JOIN' ||
+        messageType == 'JOIN_FREE' ||
+        messageType == 'JOIN_PDF' ||
+        messageType == 'JOIN_DBANK') &&
+      !(joinDetail?.joinCk == 'Y' || joinDetail?.joinCk == 'X')
+    ) {
+      statusCode = 201020;
+      returnMsg = '가입 내역 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    }
+
+    let clientHost = this.getClientHost(
+      insProdCd,
+      joinDetail?.joinAccount,
+      joinDetail?.joinPath,
+    );
 
     let template: any = {};
-    if (messageType == 'JOIN') {
-      // 가입 완료 후(가입확인서)
+    if (
+      message != null &&
+      message != '' &&
+      templateCd != null &&
+      templateCd != ''
+    ) {
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TT_7927');
+        await this.selectAlimtalkTemplateByTemplateCode(templateCd);
       template = templateData[0];
-    } else if (messageType == 'APPLY_DBANK') {
-      // 무통장입금 신청 후
+    } else if (messageType == 'APLY') {
+      // 무료 가입신청 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TT_7207');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3067');
+      template = templateData[0];
+    } else if (messageType == 'JOIN') {
+      // 유료 가입 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3080');
+      template = templateData[0];
+    } else if (messageType == 'JOIN_FREE') {
+      // 무료 가입 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3069');
+      template = templateData[0];
+    } else if (messageType == 'APLY_DBANK') {
+      // 유료 무통장입금 신청
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3083');
       template = templateData[0];
     } else if (messageType == 'JOIN_DBANK') {
-      // 무통장입금 확인 후(가입확인서)
+      // 유료 무통장입금 가입 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TT_7931');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3085');
       template = templateData[0];
     } else if (messageType == 'CNCL') {
-      // 유료 계약 유효건 계약 해지(가입확인서)
+      // 유료 해지 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TT_7210');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3087');
+      template = templateData[0];
+    } else if (messageType == 'CHG') {
+      // 유료 배서 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3090');
       template = templateData[0];
     } else if (messageType == 'JOIN_PDF') {
-      // 유료 가입확인서 요청
+      if (joinDetail?.payYn == 'N') {
+        // 무료 증권/가입확인서 요청
+        const templateData =
+          await this.selectAlimtalkTemplateByTemplateCode('TW_3099');
+        template = templateData[0];
+      } else {
+        // 유료 증권/가입확인서 요청
+        const templateData =
+          await this.selectAlimtalkTemplateByTemplateCode('TW_3095');
+        template = templateData[0];
+      }
+    } else if (messageType == 'MR_JOIN_PDF') {
+      // 메리츠 유료 증권/가입확인서 요청
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TT_7948');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3101');
       template = templateData[0];
-    } else if (messageType == 'APPLY_PREM') {
-      // 보험료 조회 신청 완료
+    } else if (messageType == 'LOTTE_APLY') {
+      // 롯데면세점 무료 가입신청 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TU_1812');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3105');
       template = templateData[0];
-    } else if (messageType == 'NOTICE_PREM') {
-      // 보험료 안내
+    } else if (messageType == 'LOTTE_JOIN') {
+      // 롯데면세점 유료 가입 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TU_1814');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3107');
+      template = templateData[0];
+    } else if (messageType == 'APLY_CLAIM') {
+      // 다태아 보험금 청구 신청
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3109');
+      template = templateData[0];
+    } else if (messageType == 'APLY_PREM_NOTI') {
+      // 기업중대사고 보험료 조회신청 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3113');
+      template = templateData[0];
+    } else if (messageType == 'PREM_NOTI') {
+      // 기업중대사고 보험료 안내
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3115');
+      template = templateData[0];
+    } else if (messageType == 'REJOIN') {
+      // 만기 재가입 안내
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3136');
+      template = templateData[0];
+    } else if (messageType == 'JOIN_RJCT') {
+      // 무료 가입반려
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3139');
+      template = templateData[0];
+    } else if (messageType == 'NOT_JOIN') {
+      // 유료 미가입 안내
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TV_6814');
       template = templateData[0];
     }
-    // else if (messageType == 'CHG_INS_DT') { // 유료 계약 유효건 배서 완료(가입확인서)
-    //   const templateData =
-    //     await this.selectAlimtalkTemplateByTemplateCode('TT_7211');
-    //   template = templateData[0];
-    // }
     console.log('template', template);
 
-    let templateCode = '';
-    let templtName = '';
+    if (template?.templtCode == null) {
+      statusCode = 201011;
+      returnMsg = '템플릿 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    } else if (
+      (messageType == 'JOIN' ||
+        messageType == 'JOIN_FREE' ||
+        messageType == 'JOIN_PDF' ||
+        messageType == 'JOIN_DBANK') &&
+      (joinDetail?.insStockUrl == null || joinDetail?.insStockUrl == '')
+    ) {
+      statusCode = 201011;
+      returnMsg = '가입증권 생성 실패';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    }
+
+    let templateCode = template.templtCode;
+    let templtName = template.templtName;
+    let templtTitle = template.templtTitle;
     let sendMessage = '';
     let sendButtons: any = {};
     let failMessageYn = 'Y';
     let failSubject = '';
     let failMessage = '';
-    if (messageType == 'JOIN') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace('#{상호명}', ccaliJoin[0]?.phNm);
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      sendMessage = sendMessage.replace('#{중간내용}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
 
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[1].linkMo = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[1].linkPc = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[2].linkMo = ccaliJoin[0]?.insProdTermsUrl;
-      sendButtons.button[2].linkPc = ccaliJoin[0]?.insProdTermsUrl;
+    failSubject = '';
+    switch (templateCode) {
+      case 'TW_3109':
+        failSubject = '보험금 청구 접수 안내';
+        break;
 
-      failSubject = '가입 완료';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace('#{상호명}', ccaliJoin[0]?.phNm);
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf
+      case 'TW_3067':
+        failSubject = '가입 신청 완료 안내';
+        break;
 
-약관보기
-${ccaliJoin[0]?.insProdTermsUrl}
-`,
-      );
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'APPLY_DBANK') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      // sendMessage = sendMessage.replace('#{은행명}', '');
-      // sendMessage = sendMessage.replace('#{계좌번호}', '');
-      // sendMessage = sendMessage.replace('#{예금주}', '');
-      sendMessage = sendMessage.replace(
-        '#{입금액}',
-        costFormatter(ccaliJoin[0]?.totInsCost) + '원',
-      );
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
+      case 'TW_3069':
+        failSubject = '가입 완료 안내';
+        break;
 
-      sendButtons = {
-        button: template.buttons,
-      };
+      case 'TW_3139':
+        failSubject = '가입 반려 안내';
+        break;
 
-      failSubject = '무통장입금 신청';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      // failMessage = failMessage.replace('#{은행명}', '');
-      // failMessage = failMessage.replace('#{계좌번호}', '');
-      // failMessage = failMessage.replace('#{예금주}', '');
-      failMessage = failMessage.replace(
-        '#{입금액}',
-        costFormatter(ccaliJoin[0]?.totInsCost) + '원',
-      );
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'JOIN_DBANK') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{보험료}',
-        costFormatter(ccaliJoin[0]?.totInsCost) + '원',
-      );
-      sendMessage = sendMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      sendMessage = sendMessage.replace('#{중간내용}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
+      case 'TW_3095':
+      case 'TW_3099':
+        failSubject = '증권/가입확인서 안내';
+        break;
+    }
 
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[1].linkMo = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[1].linkPc = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[2].linkMo = ccaliJoin[0]?.insProdTermsUrl;
-      sendButtons.button[2].linkPc = ccaliJoin[0]?.insProdTermsUrl;
+    if (message != null && message != '') {
+      sendMessage = message;
 
-      failSubject = '무통장입금 확인';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace(
-        '#{보험료}',
-        costFormatter(ccaliJoin[0]?.totInsCost) + '원',
-      );
-      failMessage = failMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf
-
-약관보기
-${ccaliJoin[0]?.insProdTermsUrl}
-`,
-      );
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'CNCL') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      // sendMessage = sendMessage.replace('#{환급 금액}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-
-      failSubject = '계약 해지';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      // failMessage = failMessage.replace('#{환급 금액}', '');
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'JOIN_PDF') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{신청일}',
-        dayjs(ccaliJoin[0]?.joinYmd).format('YYYY년 MM월 DD일'),
-      );
-      sendMessage = sendMessage.replace('#{제휴처}', ccaliJoin[0]?.joinAccount);
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      sendMessage = sendMessage.replace('#{중간내용}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[1].linkMo = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[1].linkPc = `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf`;
-      sendButtons.button[2].linkMo = ccaliJoin[0]?.insProdTermsUrl;
-      sendButtons.button[2].linkPc = ccaliJoin[0]?.insProdTermsUrl;
-
-      failSubject = '가입확인서 발송';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상호명}',
-        ccaliJoin[0]?.insuredFranNm,
-      );
-      failMessage = failMessage.replace(
-        '#{신청일}',
-        dayjs(ccaliJoin[0]?.joinYmd).format('YYYY년 MM월 DD일'),
-      );
-      failMessage = failMessage.replace('#{제휴처}', ccaliJoin[0]?.joinAccount);
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace(
-        '#{증권번호}',
-        ccaliJoin[0]?.insStockNo,
-      );
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${process.env.HOST}/uploads/join/ccali/pdf/${insertPDFResult}.pdf
-
-약관보기
-${ccaliJoin[0]?.insProdTermsUrl}
-`,
-      );
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'APPLY_PREM') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace('#{계약자}', ccaliJoin[0]?.phNm);
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace('#{중간내용}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-      if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == 'SK엠앤서비스'
-      ) {
-        sendButtons.button[1].linkMo = `https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (ccaliJoin[0]?.joinAccount == 'SK엠앤서비스') {
-        sendButtons.button[1].linkMo = `https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        sendButtons.button[1].linkMo = `https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        sendButtons.button[1].linkMo = `https://dev-ccali.wooricard-marinshu-mall.insboon1.com//history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.wooricard-marinshu-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드'
-      ) {
-        sendButtons.button[1].linkMo = `https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (ccaliJoin[0]?.joinAccount == '우리카드') {
-        sendButtons.button[1].linkMo = `https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
+      sendButtons = JSON.parse(buttons);
+      if (typeof sendButtons == 'string') {
+        sendButtons = JSON.parse(buttons);
       }
 
-      failSubject = '보험료 조회 신청 완료';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace('#{계약자}', ccaliJoin[0]?.phNm);
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == 'SK엠앤서비스'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      } else if (ccaliJoin[0]?.joinAccount == 'SK엠앤서비스') {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      } else if (
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.wooricard-marinshu-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      } else if (ccaliJoin[0]?.joinAccount == '우리카드') {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
-      }
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
-    } else if (messageType == 'NOTICE_PREM') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace('#{계약자}', ccaliJoin[0]?.phNm);
-      sendMessage = sendMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      sendMessage = sendMessage.replace('#{중간내용}', '');
-      sendMessage = sendMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      sendMessage = sendMessage.replace('#{고객센터 번호}', '1522-9323');
-      sendMessage = sendMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
+      failMessage = failSmsMessage;
+    } else {
+      switch (insProdCd) {
+        case 'mbi':
+          if (messageType == 'APLY_CLAIM') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.insuredLrNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              '서울시 다태아 출생아보험',
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
 
-      sendButtons = {
-        button: template.buttons,
-      };
-      if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == 'SK엠앤서비스'
-      ) {
-        sendButtons.button[1].linkMo = `https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (ccaliJoin[0]?.joinAccount == 'SK엠앤서비스') {
-        sendButtons.button[1].linkMo = `https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        sendButtons.button[1].linkMo = `https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        sendButtons.button[1].linkMo = `https://dev-ccali.wooricard-marinshu-mall.insboon1.com//history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.wooricard-marinshu-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드'
-      ) {
-        sendButtons.button[1].linkMo = `https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      } else if (ccaliJoin[0]?.joinAccount == '우리카드') {
-        sendButtons.button[1].linkMo = `https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-        sendButtons.button[1].linkPc = `https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}`;
-      }
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
 
-      failSubject = '보험료 안내';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      failMessage = failMessage.replace('#{계약자}', ccaliJoin[0]?.phNm);
-      failMessage = failMessage.replace(
-        '#{상품명}',
-        ccaliJoin[0]?.insProdFullNm,
-      );
-      if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == 'SK엠앤서비스'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://ccali.skmnservice-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.insuredLrNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              '서울시 다태아 출생아보험',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
 `,
-        );
-      } else if (ccaliJoin[0]?.joinAccount == 'SK엠앤서비스') {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.skmnservice-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          }
+          break;
+
+        case 'dsf2':
+          if (messageType == 'APLY') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
 `,
-        );
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://ccali.wooricard-marinshu-mall.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          } else if (messageType == 'JOIN_FREE' || messageType == 'JOIN_PDF') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{증권번호}',
+              joinDetail?.insStockNo,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{중간내용}',
+              `
+아래 버튼을 통해 증권/가입확인서를 확인해 주시기 바랍니다.
 `,
-        );
-      } else if (
-        ccaliJoin[0]?.joinAccount == '우리카드' &&
-        ccaliJoin[0]?.joinPath == '마린슈'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.wooricard-marinshu-mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = joinDetail?.insStockUrl;
+            sendButtons.button[0].linkPc = joinDetail?.insStockUrl;
+            sendButtons.button[1].linkMo = joinDetail?.termsUrl;
+            sendButtons.button[1].linkPc = joinDetail?.termsUrl;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{증권번호}',
+              joinDetail?.insStockNo,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+아래 URL을 통해 증권/가입확인서를 확인해 주시기 바랍니다.
+
+▶ 증권/가입확인서 확인하기
+${joinDetail?.insStockUrl}
+
+▶ 약관보기
+${joinDetail?.termsUrl}
 `,
-        );
-      } else if (
-        ccaliJoin[0]?.devYn == 'N' &&
-        ccaliJoin[0]?.joinAccount == '우리카드'
-      ) {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://wooricard.insboon.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          } else if (messageType == 'JOIN_RJCT') {
+            let rejectReason = ``;
+            if (joinDetail?.joinCk == 'E') {
+              rejectReason = `사유: 주소오류(가입 신청해 주신 주소지는 건축물대장에서 건물정보가 확인되지 않습니다.)`;
+            } else if (joinDetail?.joinCk == 'D') {
+              rejectReason = `사유: 계약중복`;
+            }
+
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{반려사유}',
+              `
+${rejectReason}`,
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{반려사유}',
+              `
+${rejectReason}`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
 `,
-        );
-      } else if (ccaliJoin[0]?.joinAccount == '우리카드') {
-        failMessage = failMessage.replace(
-          '#{중간내용}',
-          `
-보험료 확인하기
-https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneNo=${ccaliJoin[0]?.phPhoneNo}
-`,
-        );
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          }
+          break;
+
+        case 'dsf3':
+          break;
+
+        case 'dsf6':
+          break;
+
+        case 'dli':
+          break;
+
+        case 'mfli':
+          break;
+
+        case 'ccali':
+          break;
+
+        case 'ti':
+          break;
+
+        case 'oti':
+          break;
+
+        case 'otmi':
+          break;
+
+        case 'pip2':
+          break;
+
+        case 'tlc':
+          break;
       }
-      failMessage = failMessage.replace('#{고객센터 이름}', '㈜넥솔 고객센터');
-      failMessage = failMessage.replace('#{고객센터 번호}', '1522-9323');
-      failMessage = failMessage.replace(
-        '#{고객센터 운영시간}',
-        '(평일 9시~18시/점심시간 12시~13시, 공휴일 제외)',
-      );
     }
 
     const send = await this.funKakaoSendAlimtalk({
       senderKey: template.senderKey,
       templateCode: templateCode,
       sender,
-      receiver: receivers,
+      receiver,
       subject: templtName,
+      title: templtTitle,
       message: sendMessage,
       button: sendButtons,
       reservedYn,
       reservedDate,
       reservedTime,
-      referIdx: ccaliJoin[0]?.referIdx,
+      insProdCd,
+      referIdx: joinDetail?.referId,
+      joinId,
       messageType,
       failMessageYn,
       failSubject,
       failMessage,
+      adminId,
+      testYn,
     });
     if (send.responseYn == 'N') {
       statusCode = 201001;
@@ -1848,16 +1965,21 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
     sender,
     receiver,
     subject,
+    title,
     message,
     button,
     reservedYn,
     reservedDate,
     reservedTime,
-    referIdx,
     messageType,
     failMessageYn,
     failSubject,
     failMessage,
+    referIdx,
+    insProdCd,
+    joinId,
+    adminId,
+    testYn,
   }: any) {
     const apiKey = process.env.ALIGO_API_KEY;
     const userId = process.env.ALIGO_USER_ID;
@@ -1892,7 +2014,7 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
      */
 
     const reservedDt = dayjs(reservedDate + ' ' + reservedTime);
-    const params: any = {
+    let params: any = {
       apikey: apiKey, // 인증용 API Key(필수)
       userid: userId, // 사용자id(필수)
       senderkey: senderKey, // 발신프로파일 키(필수)
@@ -1904,22 +2026,20 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
       // recvname_1: '', // 수신자 이름(1~500)
       subject_1: subject, // 알림톡 제목(1~500)(필수)
       message_1: message, // 알림톡 내용(1~500)(필수)
-      // emtitle_1: '', // 강조표기형의 타이틀(1~500)
-      button_1: JSON.stringify(button), // 버튼 정보(1~500) (JSON 타입)
+      emtitle_1: testYn == 'Y' ? '' : title, // 강조표기형의 타이틀(1~500)
+      // button_1: JSON.stringify(button), // 버튼 정보(1~500) (JSON 타입)
       failover: failMessageYn == null ? 'N' : failMessageYn, // 실패시 대체문자 전송기능(Y/N)
       fsubject_1: failSubject == null || failSubject == '' ? null : failSubject, // 실패시 대체문자 제목(1~500)
       fmessage_1: failMessage == null || failMessage == '' ? null : failMessage, // 실패시 대체문자 내용(1~500)
       testMode: 'N', // 테스트 모드 적용여부 (Y or N)
     };
+    if (button != null && button?.button?.length > 0) {
+      params.button_1 = JSON.stringify(button);
+    }
     console.log('params', params);
     const reqEncoding = qs.stringify(params);
 
     let msgContentCd = messageType;
-    if (messageType == null) {
-      if (message?.indexOf('보험료 납입이 정상 처리되었습니다') > -1) {
-        msgContentCd = 'JOIN';
-      }
-    }
 
     let responseData;
     await axios
@@ -1928,10 +2048,42 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         },
       })
-      .then(async (response) => {
-        console.log('response', response.data);
+      .then(async (res) => {
+        console.log('response', res.data);
         const responseDt = dayjs().toDate();
-        if (response.data.code == 0) {
+        let counselingText = message;
+
+        console.log('button', button);
+        if (button != null) {
+          let btnText = '';
+          for (let btnIndex = 0; btnIndex < button?.button.length; btnIndex++) {
+            const btnElement = button?.button[btnIndex];
+            if (btnIndex == 0) {
+              btnText = `
+----------
+버튼 내용`;
+            }
+            btnText =
+              btnText +
+              `
+버튼 ${btnIndex + 1} : ${btnElement.name}${btnElement.linkMo == '' ? '' : `\n${btnElement.linkMo}`}`;
+
+            if (btnIndex == button?.button.length - 1) {
+              console.log('btnText', btnText);
+              counselingText = counselingText + btnText;
+            }
+          }
+        }
+
+        if (reservedYn == 'Y') {
+          counselingText =
+            counselingText +
+            `
+----------
+예약 발송 : ${reservedDt.format('YYYY.MM.DD HH:mm')}`;
+        }
+
+        if (res.data.code == 0) {
           /*
            * {
            *   "code": 0
@@ -1949,10 +2101,17 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
            */
           responseData = {
             responseYn: 'Y',
-            responseCode: response.status,
+            responseCode: res.status,
             responseDt: responseDt,
-            ...response.data,
+            ...res.data,
           };
+
+          counselingText =
+            counselingText +
+            `
+----------
+발송요청 결과 성공
+메시지 ID : ${res.data.info.mid}`;
         } else {
           /*
            * {
@@ -1962,10 +2121,17 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
            */
           responseData = {
             responseYn: 'N',
-            responseCode: response.status,
+            responseCode: res.status,
             responseDt: responseDt,
-            ...response.data,
+            ...res.data,
           };
+
+          counselingText =
+            counselingText +
+            `
+----------
+발송요청 결과 실패
+메시지 : ${res.data.message}`;
         }
 
         await this.saveSendSmsLogs({
@@ -1983,21 +2149,43 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
           failover: params?.failover,
           fsubject1: params?.fsubject_1,
           fmessage1: params?.fmessage_1,
-          resultCode: response.data.code.toString(),
-          message: response.data.message,
-          msgId: response.data?.info?.mid,
-          current: response.data?.info?.current,
-          unit: response.data?.info?.unit,
-          total: response.data?.info?.total,
-          scnt: response.data?.info?.scnt,
-          fcnt: response.data?.info?.fcnt,
-          msgType: response.data?.info?.type,
+          resultCode: res.data.code.toString(),
+          message: res.data.message,
+          msgId: res.data?.info?.mid,
+          current: res.data?.info?.current,
+          unit: res.data?.info?.unit,
+          total: res.data?.info?.total,
+          scnt: res.data?.info?.scnt,
+          fcnt: res.data?.info?.fcnt,
+          msgType: res.data?.info?.type,
           sendDt:
             reservedYn == 'Y' ? dayjs(reservedDt).toDate() : dayjs().toDate(),
-          msgContentCd: msgContentCd,
+          msgContentCd,
         });
+
+        await this.saveBoonSendSmsLogs({
+          adminId,
+          joinId,
+          sendData: JSON.stringify(params),
+          responseData: JSON.stringify(res.data),
+        });
+
+        // 인증번호 템플릿은 제외하고 상담내역 저장
+        if (templateCode != 'TV_6373') {
+          await this.saveBoonCounseling({
+            regId: adminId,
+            insProdCd,
+            joinId,
+            contents: counselingText,
+            counselingType: 'A',
+            cate: 'K',
+            sender,
+            receiver,
+            viewYn: 'N',
+          });
+        }
       })
-      .catch((error) => {
+      .catch(async (error) => {
         console.log('err', error);
         const responseDt = dayjs().toDate();
         responseData = {
@@ -2007,6 +2195,14 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
           message: error.response.data.resultMsg,
           ...error.response.data,
         };
+
+        await this.saveBoonSendSmsLogs({
+          adminId,
+          insProdCd,
+          joinId,
+          sendData: JSON.stringify(params),
+          errorData: JSON.stringify(error?.response?.data),
+        });
       });
 
     return responseData;
@@ -3692,5 +3888,250 @@ https://dev-ccali.mall.insboon1.com/history/history-detail?id=${joinId}&phPhoneN
     }));
 
     return formattedResults;
+  }
+
+  async startRawQuery(sql: string, params: Array<any>) {
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const result = await queryRunner.query(sql, [...params]);
+
+      await queryRunner.commitTransaction();
+      return result;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async selectJoinDetailByJoinId(joinId: number, insProdCd: string) {
+    let query = ``;
+    const parmas = [];
+
+    parmas.push(joinId);
+
+    if (insProdCd == 'dli') {
+      query = queries.Join.selectInusredDliDetailByJoinId;
+    } else if (insProdCd == 'mfli') {
+      query = queries.Join.selectInusredMfliDetailByJoinId;
+    } else if (insProdCd == 'ti' || insProdCd == 'oti' || insProdCd == 'otmi') {
+      query = queries.Join.selectInusredMfliDetailByReferId;
+    } else if (insProdCd == 'mbi') {
+      query = queries.Claim.selectClaimMbiDetailById;
+    } else if (insProdCd == 'dsf2') {
+      query = queries.Join.selectInusredDsfTwoDetailByJoinId;
+    }
+
+    const joinListData = await this.startRawQuery(query, parmas);
+
+    let results = [];
+    for (let index = 0; index < joinListData.length; index++) {
+      const element = joinListData[index];
+
+      if (element?.joinCk == 'Y' && element?.insStockNo != null) {
+        // 가입확인서
+        const insStockUrlResult = await this.funGetInsJoinFile(
+          element.id,
+          insProdCd,
+        );
+        console.log('insStockUrlResult', insStockUrlResult);
+        if (insStockUrlResult.responseCode == 0) {
+          results.push({
+            ...element,
+            insStockUrl: insStockUrlResult.responseData.path,
+          });
+        }
+      } else {
+        results.push(element);
+      }
+    }
+
+    return results;
+  }
+
+  async funGetInsJoinFile(joinId: number, insProdCd: string) {
+    let responseCode = 0;
+    let responseMsg = 'ok';
+    let responseData: any = {};
+
+    let postUrl = `${process.env.NEXSOL_FILE_API_URL}/api/v1/register/create-PDF-mall/${joinId}`;
+
+    await axios
+      .post(postUrl, { insProdCd })
+      .then(async (res) => {
+        console.log('success');
+        console.log('response.status', res.status);
+        console.log('response.data', res.data);
+        if (res.data.code == 20000) {
+          responseData = res.data.result;
+        } else {
+          responseCode = response.FAIL.responseCode;
+          responseMsg = response.FAIL.responseMsg;
+        }
+      })
+      .catch((error) => {
+        console.log('fail');
+        console.log('error', error);
+
+        responseCode = 999;
+        responseMsg = '';
+      });
+
+    return { responseCode, responseMsg, responseData };
+  }
+
+  async selectInsComDliMfliPremCmptLogByPrctrNo(
+    prctrNo: string,
+    insComCd: string,
+  ) {
+    let query = ``;
+    const parmas = [prctrNo, process.env.NODE_ENV.toLowerCase()];
+
+    if (insComCd == 'MR') {
+      query = queries.Plan.selectMeritzDliMfliPremCmptLog;
+    } else if (insComCd == 'KB') {
+      query = queries.Plan.selectKbDliMfliPremCmptLog;
+    }
+
+    const data = await this.startRawQuery(query, parmas);
+
+    return data;
+  }
+
+  async selectMeritzApiToken() {
+    return await this.oauthTokenRepository.findOne({
+      where: {
+        provider: 'meritz',
+        purps: process.env.NODE_ENV.toLowerCase(),
+        accessToken: Not(IsNull()),
+        expiresDt: MoreThan(new Date()),
+      },
+      order: {
+        id: 'DESC',
+      },
+    });
+  }
+
+  async generateMeritzApiToken() {
+    let responseCode = 0;
+    let responseMsg = 'ok';
+    let responseData: any = {};
+
+    let postUrl = process.env.NEXSOL_API_URL + '/token/requestToken';
+
+    let reqDt = dayjs();
+    let resData: any = {};
+    await axios
+      .post(postUrl, null, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+      })
+      .then(async (res) => {
+        console.log('success');
+        console.log('res.status', res.status);
+        console.log('res.data', res.data);
+        resData = res.data;
+        // resData = {
+        //   tokenType: '',
+        //   accessToken: '',
+        //   expiresIn: '',
+        //   refreshToken: '',
+        //   refreshTokenExpiresIn: '',
+        //   scope: '',
+        // };
+      })
+      .catch((err) => {
+        console.log('fail');
+        console.log('err', err);
+      });
+
+    if (resData?.tokenType != '') {
+      const tokenResult = await this.oauthTokenRepository.save({
+        tokenType: resData?.tokenType,
+        accessToken: resData?.accessToken,
+        expiresIn: resData?.expiresIn,
+        expiresDt: reqDt.add(resData?.expiresIn, 'second').toDate(),
+        refreshToken: resData?.refreshToken,
+        refreshTokenExpiresIn: resData?.refreshTokenExpiresIn,
+        refreshTokenExpiresDt: reqDt
+          .add(resData.refreshTokenExpiresIn, 'second')
+          .toDate(),
+        scope: resData?.scope,
+        provider: 'meritz',
+        purps: process.env.NODE_ENV.toLowerCase(),
+      });
+
+      responseData = tokenResult;
+    } else {
+      responseCode = response.FAIL.responseCode;
+      responseMsg = response.FAIL.responseMsg;
+    }
+
+    return { responseCode, responseMsg, responseData };
+  }
+
+  async getMeritzApiToken() {
+    let responseData: any = {};
+
+    const selectResult = await this.selectMeritzApiToken();
+    if (!selectResult) {
+      const generateResult = await this.generateMeritzApiToken();
+      if (generateResult.responseCode == 0) {
+        responseData = generateResult.responseData;
+      }
+    } else {
+      responseData = selectResult;
+    }
+    return responseData;
+  }
+
+  getClientHost(insProdCd: string, joinAccount: string, joinPath: string) {
+    let clientHost = '';
+
+    switch (insProdCd) {
+      case 'dsf2':
+        if (joinAccount == '희망브리지') {
+          clientHost = `https://dsf2.hope.insboon.com`;
+        } else if (joinAccount == '제로페이' && joinPath?.indexOf('UIB') > -1) {
+          clientHost = `https://dsf2.zeropay-uibbusan.insboon.com`;
+        } else if (joinAccount == '글로벌핀테크') {
+          clientHost = `https://dsf2.hfesg.insboon.com`;
+        }
+        // else if (joinAccount == 'W재단') {
+        //   clientHost = ``;
+        // } else if (joinAccount == '페이코') {
+        //   clientHost = ``;
+        // }
+        break;
+
+      case 'dsf3':
+        break;
+
+      case 'dsf6':
+        break;
+
+      case 'dli':
+        break;
+
+      case 'mfli':
+        break;
+
+      case 'ccali':
+        break;
+
+      case 'mbi':
+        if (joinAccount == '서울시여성가족부') {
+          clientHost = `https://mbi.seoul.insboon.com/`;
+        }
+        break;
+    }
+
+    return clientHost;
   }
 }

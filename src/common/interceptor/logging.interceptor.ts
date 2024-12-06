@@ -8,11 +8,11 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AppService } from 'src/app.service';
+import { CommonService } from '../common.service';
 
 @Injectable()
 export class LoggingInterceptor<T> implements NestInterceptor<T, any> {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly commonService: CommonService) {}
 
   private readonly logger = new Logger();
 
@@ -54,7 +54,7 @@ export class LoggingInterceptor<T> implements NestInterceptor<T, any> {
     this.logger.log(`user: ${user}`);
     this.logger.log(`host: ${headers?.host}`);
 
-    const clientLog = await this.appService.saveClientLog({
+    const clientLog = await this.commonService.saveClientLog({
       sessionId: headers?.sessionId,
       userAgent,
       userIp: ip,
@@ -80,7 +80,7 @@ export class LoggingInterceptor<T> implements NestInterceptor<T, any> {
 
         if (data?.code != null) {
           const { code, message, result } = data;
-          await this.appService.updateClientLog(clientLog?.id, {
+          await this.commonService.updateClientLog(clientLog?.id, {
             resJson:
               code == null
                 ? JSON.stringify(result)

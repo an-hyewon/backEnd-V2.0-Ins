@@ -22,9 +22,10 @@ import { CardBinNoKicc } from './entities/card-bin-no-kicc.entity';
 export class PayService {
   constructor(
     private readonly commonService: CommonService,
-    @InjectRepository(PayNicepayLogs)
+
+    @InjectRepository(PayNicepayLogs, 'default')
     private payNicepayLogsRepository: Repository<PayNicepayLogs>,
-    @InjectRepository(CardBinNoKicc)
+    @InjectRepository(CardBinNoKicc, 'default')
     private cardBinNoKiccRepository: Repository<CardBinNoKicc>,
   ) {}
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Connection } from 'typeorm';
 import * as Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import * as dayjs from 'dayjs';
@@ -19,14 +19,16 @@ export class MailService {
   private transporter: nodemailer.Transporter; // SMTP 이메일 발송
 
   constructor(
+    private readonly connection: Connection,
     private readonly commonService: CommonService,
-    @InjectRepository(EmailReceiveLogs)
+
+    @InjectRepository(EmailReceiveLogs, 'default')
     private emailReceiveLogsRepository: Repository<EmailReceiveLogs>,
-    @InjectRepository(EmailSendLogs)
+    @InjectRepository(EmailSendLogs, 'default')
     private emailSendLogsRepository: Repository<EmailSendLogs>,
-    @InjectRepository(CcaliInsCostNotice)
+    @InjectRepository(CcaliInsCostNotice, 'default')
     private ccaliInsCostNoticeRepository: Repository<CcaliInsCostNotice>,
-    @InjectRepository(CcaliJoin)
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
   ) {
     this.imap = new Imap({

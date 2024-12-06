@@ -12,28 +12,27 @@ import { MessageContentCd } from './entities/message-content-cd.entity';
 import { AlimtalkTemplate } from './entities/alimtalk-template.entity';
 import { AlimtalkTemplateButton } from './entities/alimtalk-template-button.entity';
 import { MessageContentAlimtalkTemplateMap } from './entities/message-content-alimtalk-template-map.entity';
-import { SendAlimtalkReqDto } from './dto/send-alimtalk-req.dto';
-import { SendSmsCodeReqDto } from './dto/send-sms-code-req.dto';
-import { SendSmsReqDto } from './dto/send-sms-req.dto';
 import { SelectSmsContentReqDto } from './dto/select-sms-content-req.dto';
 import { JoinService } from 'src/insurance/join/join.service';
+import { SendSmsCodeReqDto } from './dto/send-sms-code-req.dto';
 
 @Injectable()
 export class SmsService {
   constructor(
     private readonly commonService: CommonService,
     private readonly joinService: JoinService,
-    @InjectRepository(SmsSendLogs)
+
+    @InjectRepository(SmsSendLogs, 'default')
     private smsSendLogsRepository: Repository<SmsSendLogs>,
-    @InjectRepository(MessageType)
+    @InjectRepository(MessageType, 'default')
     private messageTypeRepository: Repository<MessageType>,
-    @InjectRepository(MessageContentCd)
+    @InjectRepository(MessageContentCd, 'default')
     private messageContentCdLogsRepository: Repository<MessageContentCd>,
-    @InjectRepository(AlimtalkTemplate)
+    @InjectRepository(AlimtalkTemplate, 'default')
     private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
-    @InjectRepository(AlimtalkTemplateButton)
+    @InjectRepository(AlimtalkTemplateButton, 'default')
     private alimtalkTemplateButtonRepository: Repository<AlimtalkTemplateButton>,
-    @InjectRepository(MessageContentAlimtalkTemplateMap)
+    @InjectRepository(MessageContentAlimtalkTemplateMap, 'default')
     private messageContentAlimtalkTemplateMapRepository: Repository<MessageContentAlimtalkTemplateMap>,
   ) {}
 
@@ -922,14 +921,14 @@ export class SmsService {
       sms: {},
     };
 
-    const { receivers, sender } = data;
+    const { telNo, sender } = data;
 
     const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 인증 코드 생성
     let message = `인증 번호는 ${authCode}입니다.`;
 
     const send = await this.commonService.funSendSms({
       sender,
-      receivers,
+      telNo,
       message,
       reservedYn: 'N',
     });
@@ -939,7 +938,7 @@ export class SmsService {
     } else {
       result.sms = {
         message: message,
-        receivers: receivers,
+        receiver: telNo,
         sender: sender,
         authCode: authCode,
         result: send,

@@ -12,12 +12,13 @@ import { CcaliClaim } from './entities/ccali-claim.entity';
 @Injectable()
 export class ClaimService {
   constructor(
+    private readonly connection: Connection,
     private readonly commonService: CommonService,
     private readonly joinService: JoinService,
-    private readonly connection: Connection,
-    @InjectRepository(CcaliJoin)
+
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
-    @InjectRepository(CcaliClaim)
+    @InjectRepository(CcaliClaim, 'default')
     private ccaliClaimRepository: Repository<CcaliClaim>,
   ) {}
 

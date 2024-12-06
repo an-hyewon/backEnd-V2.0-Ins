@@ -9,17 +9,22 @@ import { AlimtalkTemplate } from './entities/alimtalk-template.entity';
 import { AlimtalkTemplateButton } from './entities/alimtalk-template-button.entity';
 import { MessageContentAlimtalkTemplateMap } from './entities/message-content-alimtalk-template-map.entity';
 import { JoinModule } from 'src/insurance/join/join.module';
+import { BoonSmsSendLog } from './entities/boon-sms-send-logs.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      SmsSendLogs,
-      MessageType,
-      MessageContentCd,
-      AlimtalkTemplate,
-      AlimtalkTemplateButton,
-      MessageContentAlimtalkTemplateMap,
-    ]),
+    TypeOrmModule.forFeature(
+      [
+        SmsSendLogs,
+        MessageType,
+        MessageContentCd,
+        AlimtalkTemplate,
+        AlimtalkTemplateButton,
+        MessageContentAlimtalkTemplateMap,
+      ],
+      'default',
+    ),
+    TypeOrmModule.forFeature([BoonSmsSendLog], 'smsDbConnection'),
     JoinModule,
   ],
   controllers: [SmsController],
