@@ -5,6 +5,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumberString,
   IsOptional,
   IsString,
   MaxLength,
@@ -12,7 +13,7 @@ import {
 
 export class SendAlimtalkReqDto {
   @IsNotEmpty()
-  @IsString()
+  @IsNumberString()
   @MaxLength(100)
   @Transform(({ value }) => value?.trim())
   @ApiProperty({ description: '수신자 휴대폰번호' })
@@ -37,10 +38,15 @@ export class SendAlimtalkReqDto {
   reservedTime?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumberString()
   @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({ description: '발신자 번호' })
   sender?: string = process.env.ALIGO_SENDER;
+
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty({ description: '보험상품코드' })
+  insProdCd: string;
 
   @IsOptional()
   @IsInt()
@@ -49,11 +55,36 @@ export class SendAlimtalkReqDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['JOIN', 'JOIN_PDF', 'APPLY_DBANK', 'JOIN_DBANK'])
+  @IsIn([
+    'APLY',
+    'JOIN',
+    'JOIN_FREE',
+    'APLY_DBANK',
+    'JOIN_DBANK',
+    'CNCL',
+    'CHG',
+    'JOIN_PDF',
+    'MR_JOIN_PDF',
+    'LOTTE_APLY',
+    'LOTTE_JOIN',
+    'APLY_CLAIM',
+    'APLY_PREM_NOTI',
+    'PREM_NOTI',
+    'REJOIN',
+    'JOIN_RJCT',
+    'NOT_JOIN',
+  ])
   @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({
     description:
       '메시지 내용 타입(JOIN: 가입완료, JOIN_PDF: 가입 증권/확인서 요청, APPLY_DBANK: 무통장입금 안내, JOIN_DBANK: 무통장입금 가입완료)',
   })
   messageType?: string;
+
+  @IsOptional()
+  @IsIn(['Y', 'N'])
+  @ApiPropertyOptional({
+    description: '대체문자 테스트 여부(Y: 대체문자 발송, N: 정상 발송)',
+  })
+  testYn?: string;
 }

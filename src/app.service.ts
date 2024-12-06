@@ -22,9 +22,10 @@ import axios from 'axios';
 @Injectable()
 export class AppService {
   constructor(
+    private readonly connection: Connection,
     private readonly commonService: CommonService,
     private readonly mailService: MailService,
-    private readonly connection: Connection,
+
     @InjectRepository(CcaliJoin)
     private ccaliJoinRepository: Repository<CcaliJoin>,
     @InjectRepository(DsfSixGruopJoinUpload)

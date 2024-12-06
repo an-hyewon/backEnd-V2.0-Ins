@@ -56,59 +56,60 @@ import { KodataCorpBusinessInfo2 } from './entities/kodata-corp-business-info2.e
 @Injectable()
 export class PlanService {
   constructor(
-    private readonly commonService: CommonService,
     private readonly connection: Connection,
-    @InjectRepository(InsProdTerms)
+    private readonly commonService: CommonService,
+
+    @InjectRepository(InsProdTerms, 'default')
     private insProdTermsRepository: Repository<InsProdTerms>,
-    @InjectRepository(CcaliBizTypeView)
+    @InjectRepository(CcaliBizTypeView, 'default')
     private ccaliBizTypeRepository: Repository<CcaliBizTypeView>,
-    @InjectRepository(KoreaBusinessInfo)
+    @InjectRepository(KoreaBusinessInfo, 'default')
     private koreaBusinessInfoRepository: Repository<KoreaBusinessInfo>,
-    @InjectRepository(NtsBizType)
+    @InjectRepository(NtsBizType, 'default')
     private ntsBizTypeRepository: Repository<NtsBizType>,
-    @InjectRepository(FinpcCorpBusinessInfo)
+    @InjectRepository(FinpcCorpBusinessInfo, 'default')
     private finpcCorpBusinessInfoRepository: Repository<FinpcCorpBusinessInfo>,
-    @InjectRepository(ZeropayBusinessInfo)
+    @InjectRepository(ZeropayBusinessInfo, 'default')
     private zeropayBusinessInfoRepository: Repository<ZeropayBusinessInfo>,
-    @InjectRepository(KodataBusinessInfo)
+    @InjectRepository(KodataBusinessInfo, 'default')
     private kodataBusinessInfoRepository: Repository<KodataBusinessInfo>,
-    @InjectRepository(KodataCorpBusinessInfo)
+    @InjectRepository(KodataCorpBusinessInfo, 'default')
     private kodataCorpBusinessInfoRepository: Repository<KodataCorpBusinessInfo>,
-    @InjectRepository(KodataCorpBusinessInfo2)
+    @InjectRepository(KodataCorpBusinessInfo2, 'default')
     private kodataCorpBusinessInfo2Repository: Repository<KodataCorpBusinessInfo2>,
-    @InjectRepository(CcaliEmployeeCnt)
+    @InjectRepository(CcaliEmployeeCnt, 'default')
     private ccaliEmployeeCntRepository: Repository<CcaliEmployeeCnt>,
-    @InjectRepository(CcaliSalesCost)
+    @InjectRepository(CcaliSalesCost, 'default')
     private ccaliSalesCostRepository: Repository<CcaliSalesCost>,
-    @InjectRepository(CcaliCoverageLimit)
+    @InjectRepository(CcaliCoverageLimit, 'default')
     private ccaliCoverageLimitRepository: Repository<CcaliCoverageLimit>,
-    @InjectRepository(CcaliSalesCoverageLimitDefaultMap)
+    @InjectRepository(CcaliSalesCoverageLimitDefaultMap, 'default')
     private ccaliSalesCoverageLimitDefaultMapRepository: Repository<CcaliSalesCoverageLimitDefaultMap>,
-    @InjectRepository(CcaliInsCost)
+    @InjectRepository(CcaliInsCost, 'default')
     private ccaliInsCostRepository: Repository<CcaliInsCost>,
-    @InjectRepository(CcaliPlan)
+    @InjectRepository(CcaliPlan, 'default')
     private ccaliPlanRepository: Repository<CcaliPlan>,
-    @InjectRepository(CcaliNtsBizTypeMap)
+    @InjectRepository(CcaliNtsBizTypeMap, 'default')
     private ccaliNtsBizTypeMapRepository: Repository<CcaliNtsBizTypeMap>,
-    @InjectRepository(CcaliJoin)
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
-    @InjectRepository(CcaliKoreaBizTypeMap)
+    @InjectRepository(CcaliKoreaBizTypeMap, 'default')
     private ccaliKoreaBizTypeMapRepository: Repository<CcaliKoreaBizTypeMap>,
-    @InjectRepository(CcaliKoreaBizTypeQuestion)
+    @InjectRepository(CcaliKoreaBizTypeQuestion, 'default')
     private ccaliKoreaBizTypeQuestionRepository: Repository<CcaliKoreaBizTypeQuestion>,
-    @InjectRepository(NtsKoreaBizTypeMap)
+    @InjectRepository(NtsKoreaBizTypeMap, 'default')
     private ntsKoreaBizTypeMapRepository: Repository<NtsKoreaBizTypeMap>,
-    @InjectRepository(PlanGuaranteeMap)
+    @InjectRepository(PlanGuaranteeMap, 'default')
     private planGuaranteeMapRepository: Repository<PlanGuaranteeMap>,
-    @InjectRepository(PlanGuaranteeContent)
+    @InjectRepository(PlanGuaranteeContent, 'default')
     private planGuaranteeContentRepository: Repository<PlanGuaranteeContent>,
-    @InjectRepository(CcaliQuestion)
+    @InjectRepository(CcaliQuestion, 'default')
     private ccaliQuestionRepository: Repository<CcaliQuestion>,
-    @InjectRepository(CcaliQuestionCategory)
+    @InjectRepository(CcaliQuestionCategory, 'default')
     private ccaliQuestionCategoryRepository: Repository<CcaliQuestionCategory>,
-    @InjectRepository(CcaliQuestionAnswerTemplate)
+    @InjectRepository(CcaliQuestionAnswerTemplate, 'default')
     private ccaliQuestionAnswerTemplateRepository: Repository<CcaliQuestionAnswerTemplate>,
-    @InjectRepository(CcaliQuestionPlanGuaranteeContentMap)
+    @InjectRepository(CcaliQuestionPlanGuaranteeContentMap, 'default')
     private ccaliQuestionPlanGuaranteeContentMapRepository: Repository<CcaliQuestionPlanGuaranteeContentMap>,
   ) {}
 

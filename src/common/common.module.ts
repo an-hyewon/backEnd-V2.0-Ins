@@ -27,44 +27,50 @@ import { KbDliMfliGrupCtrCcluLog } from './entities/kb-dli-mfli-grup-ctr-cclu-lo
 import { RegionDepthNm } from './entities/region-depth-nm.entity';
 import { InsuratorEstimateFile } from 'src/insurance/join/entities/insurator-estimate-file.entity';
 import { ClientLog } from './entities/client-log.entity';
+import { AdminUser } from './entities/admin-user.entity';
+import { BoonCounseling } from './entities/boon-counseling.entity';
+import { BoonSmsSendLog } from 'src/sms/entities/boon-sms-send-logs.entity';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ClientLog,
-      InsCom,
-      InsProd,
-      SiteInfo,
-      InsComRatioInfo,
-      SmsSendLogs,
-      AlimtalkTemplate,
-      OauthToken,
+    TypeOrmModule.forFeature(
+      [
+        ClientLog,
+        InsCom,
+        InsProd,
+        SiteInfo,
+        InsComRatioInfo,
+        SmsSendLogs,
+        AlimtalkTemplate,
+        OauthToken,
 
-      MeritzDliMfliRetrieveSnoLog,
-      MeritzDliMfliPremCmptLog,
-      MeritzDliMfliGrupCtrCcluLog,
-      KbDliMfliRetrieveSnoLog,
-      KbDliMfliPremCmptLog,
-      KbDliMfliGrupCtrCcluLog,
-      RegionDepthNm,
-      InsuratorEstimateFile,
+        MeritzDliMfliRetrieveSnoLog,
+        MeritzDliMfliPremCmptLog,
+        MeritzDliMfliGrupCtrCcluLog,
+        KbDliMfliRetrieveSnoLog,
+        KbDliMfliPremCmptLog,
+        KbDliMfliGrupCtrCcluLog,
+        RegionDepthNm,
+        InsuratorEstimateFile,
 
-      CcaliUploads,
-      CcaliJoin,
-      NtsBizType,
-      CcaliBizTypeView,
-      PlanGuaranteeContent,
-      CcaliJoin,
-      NtsBizType,
-      CcaliBizTypeView,
-      PlanGuaranteeContent,
-      CcaliJoinSubCompany,
-      CcaliClaim,
-      CcaliAnswerResponse,
-      CcaliInsCostNotice,
-      MasterInsStockNo,
-    ]),
+        CcaliUploads,
+        CcaliJoin,
+        NtsBizType,
+        CcaliBizTypeView,
+        PlanGuaranteeContent,
+        CcaliJoinSubCompany,
+        CcaliClaim,
+        CcaliAnswerResponse,
+        CcaliInsCostNotice,
+        MasterInsStockNo,
+
+        AdminUser,
+        BoonCounseling,
+      ],
+      'default',
+    ),
+    TypeOrmModule.forFeature([BoonSmsSendLog], 'smsDbConnection'),
   ],
   providers: [CommonService],
   exports: [CommonService],

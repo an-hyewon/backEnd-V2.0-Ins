@@ -5,6 +5,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumberString,
   IsOptional,
   IsString,
   MaxLength,
@@ -18,29 +19,11 @@ export class SendAlimtalkDto {
   adminId?: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumberString()
   @MaxLength(100)
   @Transform(({ value }) => value?.trim())
   @ApiProperty({ description: '수신자 휴대폰번호' })
   receiver: string;
-
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  @ApiPropertyOptional({ description: '메시지 내용' })
-  message?: string;
-
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  @ApiPropertyOptional({ description: '버튼 내용' })
-  buttons?: string;
-
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  @ApiPropertyOptional({ description: '대체문자 내용' })
-  failSmsMessage?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -61,7 +44,7 @@ export class SendAlimtalkDto {
   reservedTime?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumberString()
   @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({ description: '발신자 번호' })
   sender?: string = process.env.ALIGO_SENDER;
@@ -78,7 +61,25 @@ export class SendAlimtalkDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['JOIN', 'JOIN_PDF', 'APPLY_DBANK', 'JOIN_DBANK'])
+  @IsIn([
+    'APLY',
+    'JOIN',
+    'JOIN_FREE',
+    'APLY_DBANK',
+    'JOIN_DBANK',
+    'CNCL',
+    'CHG',
+    'JOIN_PDF',
+    'MR_JOIN_PDF',
+    'LOTTE_APLY',
+    'LOTTE_JOIN',
+    'APLY_CLAIM',
+    'APLY_PREM_NOTI',
+    'PREM_NOTI',
+    'REJOIN',
+    'JOIN_RJCT',
+    'NOT_JOIN',
+  ])
   @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({
     description:
@@ -89,6 +90,31 @@ export class SendAlimtalkDto {
   @IsOptional()
   @IsString()
   @Transform(({ value }) => value?.trim())
+  @ApiPropertyOptional({ description: '메시지 내용' })
+  message?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  @ApiPropertyOptional({ description: '버튼 내용' })
+  buttons?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  @ApiPropertyOptional({ description: '대체문자 내용' })
+  failSmsMessage?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
   @ApiPropertyOptional({ description: '알림톡 템플릿 코드' })
   templateCd?: string;
+
+  @IsOptional()
+  @IsIn(['Y', 'N'])
+  @ApiPropertyOptional({
+    description: '대체문자 테스트 여부(Y: 대체문자 발송, N: 정상 발송)',
+  })
+  testYn?: string;
 }

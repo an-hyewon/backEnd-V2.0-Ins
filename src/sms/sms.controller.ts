@@ -25,19 +25,19 @@ export class SmsController {
     private readonly commonService: CommonService,
   ) {}
 
-  // @Post('send/alimtalk')
-  // @ApiOperation({
-  //   summary: '알림톡 발송',
-  //   description: `
-  //   응답코드
-  //   - 201000 (성공)
-  //   - 201010 (발송 실패)
-  //   - 400000 (유효성 체크 오류)
-  //   `,
-  // })
-  // async sendKakaoAlimtalk(@Request() req, @Body() body: SendAlimtalkReqDto) {
-  //   return this.commonService.sendKakaoAlimtalk(body);
-  // }
+  @Post('send/alimtalk/boon')
+  @ApiOperation({
+    summary: '보온 알림톡 발송',
+    description: `
+    응답코드
+    - 201000 (성공)
+    - 201010 (발송 실패)
+    - 400000 (유효성 체크 오류)
+    `,
+  })
+  async sendKakaoAlimtalk(@Request() req, @Body() body: SendAlimtalkReqDto) {
+    return this.commonService.sendKakaoAlimtalk(body);
+  }
 
   // @Post('send-code')
   // @ApiOperation({

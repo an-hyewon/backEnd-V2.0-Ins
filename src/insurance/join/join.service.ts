@@ -72,52 +72,53 @@ import { CompleteInsContractReqDto } from './dto/complete-ins-contract-req.dto';
 @Injectable()
 export class JoinService {
   constructor(
+    private readonly connection: Connection,
     private readonly commonService: CommonService,
     private readonly planService: PlanService,
     private readonly mailService: MailService,
-    private readonly connection: Connection,
-    @InjectRepository(InsProd)
+
+    @InjectRepository(InsProd, 'default')
     private insProdRepository: Repository<InsProd>,
 
-    @InjectRepository(JoinConfirm)
+    @InjectRepository(JoinConfirm, 'default')
     private joinConfirmRepository: Repository<JoinConfirm>,
-    @InjectRepository(MasterInsStockNo)
+    @InjectRepository(MasterInsStockNo, 'default')
     private masterInsStockNoRepository: Repository<MasterInsStockNo>,
 
-    @InjectRepository(CcaliJoin)
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
-    @InjectRepository(CcaliJoinSubCompany)
+    @InjectRepository(CcaliJoinSubCompany, 'default')
     private ccaliJoinSubCompanyRepository: Repository<CcaliJoinSubCompany>,
-    @InjectRepository(CcaliCoverageLimit)
+    @InjectRepository(CcaliCoverageLimit, 'default')
     private ccaliCoverageLimitRepository: Repository<CcaliCoverageLimit>,
-    @InjectRepository(NtsBizType)
+    @InjectRepository(NtsBizType, 'default')
     private ntsBizTypeRepository: Repository<NtsBizType>,
-    @InjectRepository(CcaliBizTypeView)
+    @InjectRepository(CcaliBizTypeView, 'default')
     private ccaliBizTypeRepository: Repository<CcaliBizTypeView>,
-    @InjectRepository(TermsAgreeLogs)
+    @InjectRepository(TermsAgreeLogs, 'default')
     private termsAgreeLogsRepository: Repository<TermsAgreeLogs>,
-    @InjectRepository(CcaliAnswerResponse)
+    @InjectRepository(CcaliAnswerResponse, 'default')
     private ccaliAnswerResponseRepository: Repository<CcaliAnswerResponse>,
-    @InjectRepository(CcaliQuestionAnswerTemplate)
+    @InjectRepository(CcaliQuestionAnswerTemplate, 'default')
     private ccaliQuestionAnswerTemplateRepository: Repository<CcaliQuestionAnswerTemplate>,
-    @InjectRepository(CcaliJoinPayLogs)
+    @InjectRepository(CcaliJoinPayLogs, 'default')
     private ccaliJoinPayLogsRepository: Repository<CcaliJoinPayLogs>,
 
-    @InjectRepository(TotalBizMember)
+    @InjectRepository(TotalBizMember, 'default')
     private totalBizMemberRepository: Repository<TotalBizMember>,
-    @InjectRepository(DliJoin)
+    @InjectRepository(DliJoin, 'default')
     private dliJoinRepository: Repository<DliJoin>,
-    @InjectRepository(MfliJoin)
+    @InjectRepository(MfliJoin, 'default')
     private mfliJoinRepository: Repository<MfliJoin>,
-    @InjectRepository(DliJoinTmp)
+    @InjectRepository(DliJoinTmp, 'default')
     private dliJoinTmpRepository: Repository<DliJoinTmp>,
-    @InjectRepository(MfliJoinTmp)
+    @InjectRepository(MfliJoinTmp, 'default')
     private mfliJoinTmpRepository: Repository<MfliJoinTmp>,
-    @InjectRepository(InsuratorJoin)
+    @InjectRepository(InsuratorJoin, 'default')
     private insuratorJoinRepository: Repository<InsuratorJoin>,
-    @InjectRepository(InsuratorJoinFee)
+    @InjectRepository(InsuratorJoinFee, 'default')
     private insuratorJoinFeeRepository: Repository<InsuratorJoinFee>,
-    @InjectRepository(InsuratorEstimateFile)
+    @InjectRepository(InsuratorEstimateFile, 'default')
     private insuratorEstimateFileRepository: Repository<InsuratorEstimateFile>,
   ) {}
 

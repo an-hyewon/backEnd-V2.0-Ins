@@ -21,17 +21,18 @@ export class SmsService {
   constructor(
     private readonly commonService: CommonService,
     private readonly joinService: JoinService,
-    @InjectRepository(SmsSendLogs)
+
+    @InjectRepository(SmsSendLogs, 'default')
     private smsSendLogsRepository: Repository<SmsSendLogs>,
-    @InjectRepository(MessageType)
+    @InjectRepository(MessageType, 'default')
     private messageTypeRepository: Repository<MessageType>,
-    @InjectRepository(MessageContentCd)
+    @InjectRepository(MessageContentCd, 'default')
     private messageContentCdLogsRepository: Repository<MessageContentCd>,
-    @InjectRepository(AlimtalkTemplate)
+    @InjectRepository(AlimtalkTemplate, 'default')
     private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
-    @InjectRepository(AlimtalkTemplateButton)
+    @InjectRepository(AlimtalkTemplateButton, 'default')
     private alimtalkTemplateButtonRepository: Repository<AlimtalkTemplateButton>,
-    @InjectRepository(MessageContentAlimtalkTemplateMap)
+    @InjectRepository(MessageContentAlimtalkTemplateMap, 'default')
     private messageContentAlimtalkTemplateMapRepository: Repository<MessageContentAlimtalkTemplateMap>,
   ) {}
 

@@ -8,7 +8,10 @@ import { TermsAgreeCdInfo } from './entities/terms-agree-cd-info.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TermsAgreeLogs, TermsAgreeCdInfo, TermsAgreeMap]),
+    TypeOrmModule.forFeature(
+      [TermsAgreeLogs, TermsAgreeCdInfo, TermsAgreeMap],
+      'default',
+    ),
   ],
   controllers: [TermsController],
   providers: [TermsService],

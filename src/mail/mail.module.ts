@@ -8,12 +8,10 @@ import { CcaliJoin } from 'src/insurance/join/entities/ccali-join.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      EmailReceiveLogs,
-      EmailSendLogs,
-      CcaliInsCostNotice,
-      CcaliJoin,
-    ]),
+    TypeOrmModule.forFeature(
+      [EmailReceiveLogs, EmailSendLogs, CcaliInsCostNotice, CcaliJoin],
+      'default',
+    ),
   ],
   providers: [MailService],
   exports: [MailService],

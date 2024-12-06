@@ -6,7 +6,9 @@ import { PhoneCertLogs } from './entities/phone-cert-logs.entity';
 import { SecukitOneCertLogs } from './entities/secukit-one-cert-logs.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PhoneCertLogs, SecukitOneCertLogs])],
+  imports: [
+    TypeOrmModule.forFeature([PhoneCertLogs, SecukitOneCertLogs], 'default'),
+  ],
   controllers: [CertController],
   providers: [CertService],
   exports: [CertService],

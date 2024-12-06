@@ -68,64 +68,73 @@ import { CreateClientLogReqDto } from './dto/create-client-log-req.dto';
 import { UpdateClientLogReqDto } from './dto/update-client-log-req.dto';
 import { SendAlimtalkDto } from 'src/sms/dto/send-alimtalk.dto';
 import { SendSmsReqDto } from 'src/sms/dto/send-sms-req.dto';
+import { BoonCounseling } from './entities/boon-counseling.entity';
+import { AdminUser } from './entities/admin-user.entity';
+import { BoonSmsSendLog } from 'src/sms/entities/boon-sms-send-logs.entity';
 
 @Injectable()
 export class CommonService {
   constructor(
     private readonly connection: Connection,
 
-    @InjectRepository(ClientLog)
+    @InjectRepository(ClientLog, 'default')
     private clientLogRepository: Repository<ClientLog>,
-    @InjectRepository(InsCom)
+    @InjectRepository(InsCom, 'default')
     private insComRepository: Repository<InsCom>,
-    @InjectRepository(InsProd)
+    @InjectRepository(InsProd, 'default')
     private insProdRepository: Repository<InsProd>,
-    @InjectRepository(SiteInfo)
+    @InjectRepository(SiteInfo, 'default')
     private siteInfoRepository: Repository<SiteInfo>,
-    @InjectRepository(InsComRatioInfo)
+    @InjectRepository(InsComRatioInfo, 'default')
     private insComRatioInfoRepository: Repository<InsComRatioInfo>,
-    @InjectRepository(SmsSendLogs)
+    @InjectRepository(SmsSendLogs, 'default')
     private smsSendLogsRepository: Repository<SmsSendLogs>,
-    @InjectRepository(AlimtalkTemplate)
+    @InjectRepository(BoonSmsSendLog, 'smsDbConnection')
+    private boonSmsSendLogRepository: Repository<BoonSmsSendLog>,
+    @InjectRepository(AlimtalkTemplate, 'default')
     private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
-    @InjectRepository(OauthToken)
+    @InjectRepository(OauthToken, 'default')
     private oauthTokenRepository: Repository<OauthToken>,
 
-    @InjectRepository(CcaliUploads)
-    private ccaliUploadsRepository: Repository<CcaliUploads>,
-
-    @InjectRepository(CcaliJoin)
+    @InjectRepository(CcaliJoin, 'default')
     private ccaliJoinRepository: Repository<CcaliJoin>,
-    @InjectRepository(NtsBizType)
+    @InjectRepository(CcaliUploads, 'default')
+    private ccaliUploadsRepository: Repository<CcaliUploads>,
+    @InjectRepository(NtsBizType, 'default')
     private ntsBizTypeRepository: Repository<NtsBizType>,
-    @InjectRepository(CcaliBizTypeView)
+    @InjectRepository(CcaliBizTypeView, 'default')
     private ccaliBizTypeRepository: Repository<CcaliBizTypeView>,
-    @InjectRepository(PlanGuaranteeContent)
+    @InjectRepository(PlanGuaranteeContent, 'default')
     private planGuaranteeContentRepository: Repository<PlanGuaranteeContent>,
-    @InjectRepository(CcaliJoinSubCompany)
+    @InjectRepository(CcaliJoinSubCompany, 'default')
     private ccaliJoinSubCompanyRepository: Repository<CcaliJoinSubCompany>,
-    @InjectRepository(CcaliClaim)
+    @InjectRepository(CcaliClaim, 'default')
     private ccaliClaimRepository: Repository<CcaliClaim>,
-    @InjectRepository(CcaliAnswerResponse)
+    @InjectRepository(CcaliAnswerResponse, 'default')
     private ccaliAnswerResponseRepository: Repository<CcaliAnswerResponse>,
-    @InjectRepository(CcaliInsCostNotice)
+    @InjectRepository(CcaliInsCostNotice, 'default')
     private ccaliInsCostNoticeRepository: Repository<CcaliInsCostNotice>,
-    @InjectRepository(MasterInsStockNo)
+    @InjectRepository(MasterInsStockNo, 'default')
     private masterInsStockNoRepository: Repository<MasterInsStockNo>,
 
-    @InjectRepository(MeritzDliMfliRetrieveSnoLog)
+    @InjectRepository(MeritzDliMfliRetrieveSnoLog, 'default')
     private meritzDliMfliRetrieveSnoLogRepository: Repository<MeritzDliMfliRetrieveSnoLog>,
-    @InjectRepository(MeritzDliMfliPremCmptLog)
+    @InjectRepository(MeritzDliMfliPremCmptLog, 'default')
     private meritzDliMfliPremCmptLogRepository: Repository<MeritzDliMfliPremCmptLog>,
-    @InjectRepository(MeritzDliMfliGrupCtrCcluLog)
+    @InjectRepository(MeritzDliMfliGrupCtrCcluLog, 'default')
     private meritzDliMfliGrupCtrCcluLogRepository: Repository<MeritzDliMfliGrupCtrCcluLog>,
 
-    @InjectRepository(KbDliMfliRetrieveSnoLog)
+    @InjectRepository(KbDliMfliRetrieveSnoLog, 'default')
     private kbDliMfliRetrieveSnoLogRepository: Repository<KbDliMfliRetrieveSnoLog>,
-    @InjectRepository(KbDliMfliPremCmptLog)
+    @InjectRepository(KbDliMfliPremCmptLog, 'default')
     private kbDliMfliPremCmptLogRepository: Repository<KbDliMfliPremCmptLog>,
-    @InjectRepository(KbDliMfliGrupCtrCcluLog)
+    @InjectRepository(KbDliMfliGrupCtrCcluLog, 'default')
     private kbDliMfliGrupCtrCcluLogRepository: Repository<KbDliMfliGrupCtrCcluLog>,
+
+    @InjectRepository(AdminUser, 'default')
+    private adminUserRepository: Repository<AdminUser>,
+    @InjectRepository(BoonCounseling, 'default')
+    private boonCounselingRepository: Repository<BoonCounseling>,
   ) {}
 
   async saveClientLog(data: CreateClientLogReqDto) {
@@ -1259,6 +1268,31 @@ export class CommonService {
     return await this.smsSendLogsRepository.save(entity);
   }
 
+  async saveBoonSendSmsLogs(data: Partial<BoonSmsSendLog>) {
+    const entity = this.boonSmsSendLogRepository.create(data);
+    return await this.boonSmsSendLogRepository.save(entity);
+  }
+
+  async saveBoonCounseling(data: Partial<BoonCounseling>) {
+    if (data?.regId != null && data?.regId != 0) {
+      // 관리자 이름 조회
+      const adminData = await this.adminUserRepository.find({
+        where: {
+          id: data.regId,
+        },
+      });
+      if (adminData.length > 0) {
+        const entity = this.boonCounselingRepository.create({
+          ...data,
+          regNm: adminData[0]?.adminUserNm,
+        });
+        return await this.boonCounselingRepository.save(entity);
+      }
+    }
+    const entity = this.boonCounselingRepository.create(data);
+    return await this.boonCounselingRepository.save(entity);
+  }
+
   async sendKakaoAlimtalk(data: SendAlimtalkDto, adminId?: number) {
     let statusCode = 201000;
     let returnMsg = 'ok';
@@ -1268,9 +1302,6 @@ export class CommonService {
 
     const {
       receiver,
-      message,
-      buttons,
-      failSmsMessage,
       reservedYn,
       reservedDate,
       reservedTime,
@@ -1279,6 +1310,10 @@ export class CommonService {
       joinId,
       messageType,
       templateCd,
+      message,
+      buttons,
+      failSmsMessage,
+      testYn,
     } = data;
 
     if (message != null && message != '') {
@@ -1289,6 +1324,8 @@ export class CommonService {
       if (failSmsMessage == null || failSmsMessage == '')
         throw new BadRequestException('Validation Failed(failSmsMessage)');
     }
+
+    // messageType, insProdCd 관리 테이블 있어야 함
 
     // 가입내역 조회
     const joinDetailData = await this.selectJoinDetailByJoinId(
@@ -1309,6 +1346,44 @@ export class CommonService {
       return responseResult;
     }
     const joinDetail = joinDetailData[0];
+    if (
+      messageType == 'JOIN_RJCT' &&
+      !(joinDetail?.joinCk == 'D' || joinDetail?.joinCk == 'E')
+    ) {
+      statusCode = 201020;
+      returnMsg = '가입 내역 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    } else if (
+      (messageType == 'JOIN' ||
+        messageType == 'JOIN_FREE' ||
+        messageType == 'JOIN_PDF' ||
+        messageType == 'JOIN_DBANK') &&
+      !(joinDetail?.joinCk == 'Y' || joinDetail?.joinCk == 'X')
+    ) {
+      statusCode = 201020;
+      returnMsg = '가입 내역 없음';
+
+      let responseResult = {
+        code: statusCode,
+        message: returnMsg,
+        result,
+      };
+
+      return responseResult;
+    }
+
+    let clientHost = this.getClientHost(
+      insProdCd,
+      joinDetail?.joinAccount,
+      joinDetail?.joinPath,
+    );
 
     let template: any = {};
     if (
@@ -1320,23 +1395,95 @@ export class CommonService {
       const templateData =
         await this.selectAlimtalkTemplateByTemplateCode(templateCd);
       template = templateData[0];
+    } else if (messageType == 'APLY') {
+      // 무료 가입신청 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3067');
+      template = templateData[0];
     } else if (messageType == 'JOIN') {
-      // 가입완료
+      // 유료 가입 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TV_6740');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3080');
       template = templateData[0];
-    } else if (messageType == 'JOIN_PDF') {
-      // 가입 증권/가입확인서 요청
+    } else if (messageType == 'JOIN_FREE') {
+      // 무료 가입 완료
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TV_6807');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3069');
       template = templateData[0];
-    } else if (messageType == 'APPLY_DBANK') {
-      // 무통장입금 안내
+    } else if (messageType == 'APLY_DBANK') {
+      // 유료 무통장입금 신청
       const templateData =
-        await this.selectAlimtalkTemplateByTemplateCode('TV_6792');
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3083');
       template = templateData[0];
     } else if (messageType == 'JOIN_DBANK') {
-      // 무통장입금 가입완료
+      // 유료 무통장입금 가입 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3085');
+      template = templateData[0];
+    } else if (messageType == 'CNCL') {
+      // 유료 해지 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3087');
+      template = templateData[0];
+    } else if (messageType == 'CHG') {
+      // 유료 배서 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3090');
+      template = templateData[0];
+    } else if (messageType == 'JOIN_PDF') {
+      if (joinDetail?.payYn == 'N') {
+        // 무료 증권/가입확인서 요청
+        const templateData =
+          await this.selectAlimtalkTemplateByTemplateCode('TW_3099');
+        template = templateData[0];
+      } else {
+        // 유료 증권/가입확인서 요청
+        const templateData =
+          await this.selectAlimtalkTemplateByTemplateCode('TW_3095');
+        template = templateData[0];
+      }
+    } else if (messageType == 'MR_JOIN_PDF') {
+      // 메리츠 유료 증권/가입확인서 요청
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3101');
+      template = templateData[0];
+    } else if (messageType == 'LOTTE_APLY') {
+      // 롯데면세점 무료 가입신청 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3105');
+      template = templateData[0];
+    } else if (messageType == 'LOTTE_JOIN') {
+      // 롯데면세점 유료 가입 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3107');
+      template = templateData[0];
+    } else if (messageType == 'APLY_CLAIM') {
+      // 다태아 보험금 청구 신청
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3109');
+      template = templateData[0];
+    } else if (messageType == 'APLY_PREM_NOTI') {
+      // 기업중대사고 보험료 조회신청 완료
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3113');
+      template = templateData[0];
+    } else if (messageType == 'PREM_NOTI') {
+      // 기업중대사고 보험료 안내
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3115');
+      template = templateData[0];
+    } else if (messageType == 'REJOIN') {
+      // 만기 재가입 안내
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3136');
+      template = templateData[0];
+    } else if (messageType == 'JOIN_RJCT') {
+      // 무료 가입반려
+      const templateData =
+        await this.selectAlimtalkTemplateByTemplateCode('TW_3139');
+      template = templateData[0];
+    } else if (messageType == 'NOT_JOIN') {
+      // 유료 미가입 안내
       const templateData =
         await this.selectAlimtalkTemplateByTemplateCode('TV_6814');
       template = templateData[0];
@@ -1356,6 +1503,7 @@ export class CommonService {
       return responseResult;
     } else if (
       (messageType == 'JOIN' ||
+        messageType == 'JOIN_FREE' ||
         messageType == 'JOIN_PDF' ||
         messageType == 'JOIN_DBANK') &&
       (joinDetail?.insStockUrl == null || joinDetail?.insStockUrl == '')
@@ -1372,312 +1520,405 @@ export class CommonService {
       return responseResult;
     }
 
-    let templateCode = '';
-    let templtName = '';
+    let templateCode = template.templtCode;
+    let templtName = template.templtName;
+    let templtTitle = template.templtTitle;
     let sendMessage = '';
     let sendButtons: any = {};
     let failMessageYn = 'Y';
     let failSubject = '';
     let failMessage = '';
+
+    failSubject = '';
+    switch (templateCode) {
+      case 'TW_3109':
+        failSubject = '보험금 청구 접수 안내';
+        break;
+
+      case 'TW_3067':
+        failSubject = '가입 신청 완료 안내';
+        break;
+
+      case 'TW_3069':
+        failSubject = '가입 완료 안내';
+        break;
+
+      case 'TW_3139':
+        failSubject = '가입 반려 안내';
+        break;
+
+      case 'TW_3095':
+      case 'TW_3099':
+        failSubject = '증권/가입확인서 안내';
+        break;
+    }
+
     if (message != null && message != '') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
       sendMessage = message;
 
       sendButtons = JSON.parse(buttons);
       if (typeof sendButtons == 'string') {
         sendButtons = JSON.parse(buttons);
       }
-      failSubject = '보온';
-      switch (templateCd) {
-        case 'TV_6740':
-          failSubject += ' 가입 완료';
+
+      failMessage = failSmsMessage;
+    } else {
+      switch (insProdCd) {
+        case 'mbi':
+          if (messageType == 'APLY_CLAIM') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.insuredLrNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              '서울시 다태아 출생아보험',
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.insuredLrNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              '서울시 다태아 출생아보험',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
+`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          }
           break;
 
-        case 'TV_6807':
-          failSubject += ' 가입 증권/가입확인서 발송';
+        case 'dsf2':
+          if (messageType == 'APLY') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
+`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          } else if (messageType == 'JOIN_FREE' || messageType == 'JOIN_PDF') {
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{증권번호}',
+              joinDetail?.insStockNo,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{중간내용}',
+              `
+아래 버튼을 통해 증권/가입확인서를 확인해 주시기 바랍니다.
+`,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = joinDetail?.insStockUrl;
+            sendButtons.button[0].linkPc = joinDetail?.insStockUrl;
+            sendButtons.button[1].linkMo = joinDetail?.termsUrl;
+            sendButtons.button[1].linkPc = joinDetail?.termsUrl;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{증권번호}',
+              joinDetail?.insStockNo,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+아래 URL을 통해 증권/가입확인서를 확인해 주시기 바랍니다.
+
+▶ 증권/가입확인서 확인하기
+${joinDetail?.insStockUrl}
+
+▶ 약관보기
+${joinDetail?.termsUrl}
+`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          } else if (messageType == 'JOIN_RJCT') {
+            let rejectReason = ``;
+            if (joinDetail?.joinCk == 'E') {
+              rejectReason = `사유: 주소오류(가입 신청해 주신 주소지는 건축물대장에서 건물정보가 확인되지 않습니다.)`;
+            } else if (joinDetail?.joinCk == 'D') {
+              rejectReason = `사유: 계약중복`;
+            }
+
+            sendMessage = template.templtContent;
+            sendMessage = sendMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{반려사유}',
+              `
+${rejectReason}`,
+            );
+            sendMessage = sendMessage.replaceAll('#{중간내용}', ``);
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            sendMessage = sendMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+
+            sendButtons = {
+              button: template.buttons,
+            };
+            sendButtons.button[0].linkMo = `${clientHost}`;
+            sendButtons.button[0].linkPc = `${clientHost}`;
+
+            failMessage = `[${failSubject}]
+
+${template.templtContent}`;
+            failMessage = failMessage.replaceAll(
+              '#{피보험자}',
+              joinDetail?.sendNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{신청일}',
+              dayjs(joinDetail?.createdDt).format('YYYY년 MM월 DD일'),
+            );
+            failMessage = failMessage.replaceAll(
+              '#{제휴처}',
+              joinDetail?.sendJoinAccount,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{상품명}',
+              joinDetail?.sendInsProdFullNm,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{반려사유}',
+              `
+${rejectReason}`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{중간내용}',
+              `
+▶ 신청 정보 확인하기
+${clientHost}
+`,
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 이름}',
+              '㈜넥솔 고객센터',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 번호}',
+              '1522-6545',
+            );
+            failMessage = failMessage.replaceAll(
+              '#{고객센터 운영시간}',
+              '(평일 9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
+            );
+          }
           break;
 
-        case 'TV_6792':
-          failSubject += ' 무통장입금 안내';
+        case 'dsf3':
           break;
 
-        case 'TV_6814':
-          failSubject += ' 가입 완료';
+        case 'dsf6':
+          break;
+
+        case 'dli':
+          break;
+
+        case 'mfli':
+          break;
+
+        case 'ccali':
+          break;
+
+        case 'ti':
+          break;
+
+        case 'oti':
+          break;
+
+        case 'otmi':
+          break;
+
+        case 'pip2':
+          break;
+
+        case 'tlc':
           break;
       }
-      failMessage = failSmsMessage;
-    } else if (messageType == 'JOIN') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      sendMessage = sendMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      sendMessage = sendMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      sendMessage = sendMessage.replaceAll('#{중간내용}', '');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      sendMessage = sendMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[0].linkMo = joinDetail?.insStockUrl;
-      sendButtons.button[0].linkPc = joinDetail?.insStockUrl;
-      sendButtons.button[1].linkMo = joinDetail?.termsUrl;
-      sendButtons.button[1].linkPc = joinDetail?.termsUrl;
-
-      failSubject = '보온 가입 완료';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      failMessage = failMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      failMessage = failMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      failMessage = failMessage.replaceAll('아래 버튼을', '아래 링크를');
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${joinDetail?.insStockUrl}
-
-약관보기
-${joinDetail?.termsUrl}
-  `,
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 이름}', '고객센터');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-    } else if (messageType == 'JOIN_PDF') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      sendMessage = sendMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      sendMessage = sendMessage.replaceAll(
-        '#{신청일}',
-        dayjs(joinDetail?.joinYmd).format('YYYY-MM-DD'),
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{제휴처}',
-        joinDetail?.sendJoinAccount,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      sendMessage = sendMessage.replaceAll('#{중간내용}', '');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      sendMessage = sendMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[0].linkMo = joinDetail?.insStockUrl;
-      sendButtons.button[0].linkPc = joinDetail?.insStockUrl;
-      sendButtons.button[1].linkMo = joinDetail?.termsUrl;
-      sendButtons.button[1].linkPc = joinDetail?.termsUrl;
-
-      failSubject = '보온 가입 증권/가입확인서 발송';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      failMessage = failMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      failMessage = failMessage.replaceAll(
-        '#{신청일}',
-        dayjs(joinDetail?.joinYmd).format('YYYY-MM-DD'),
-      );
-      failMessage = failMessage.replaceAll(
-        '#{제휴처}',
-        joinDetail?.sendJoinAccount,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      failMessage = failMessage.replaceAll('아래 버튼을', '아래 링크를');
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${joinDetail?.insStockUrl}
-
-약관보기
-${joinDetail?.termsUrl}
-  `,
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 이름}', '고객센터');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-    } else if (messageType == 'APPLY_DBANK') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      sendMessage = sendMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      sendMessage = sendMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      sendMessage = sendMessage.replaceAll('#{은행명}', '국민은행');
-      sendMessage = sendMessage.replaceAll('#{계좌번호}', '891201-00-038875');
-      sendMessage = sendMessage.replaceAll('#{예금주}', '주식회사 넥솔');
-      sendMessage = sendMessage.replaceAll(
-        '#{입금액}',
-        `${costFormatter(joinDetail?.applyCost)}원`,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      sendMessage = sendMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-
-      failSubject = '보온 무통장입금 안내';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      failMessage = failMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      failMessage = failMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      failMessage = failMessage.replaceAll('#{은행명}', '국민은행');
-      failMessage = failMessage.replaceAll('#{계좌번호}', '891201-00-038875');
-      failMessage = failMessage.replaceAll('#{예금주}', '주식회사 넥솔');
-      failMessage = failMessage.replaceAll(
-        '#{입금액}',
-        `${costFormatter(joinDetail?.applyCost)}원`,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-    } else if (messageType == 'JOIN_DBANK') {
-      templateCode = template.templtCode;
-      templtName = template.templtName;
-      sendMessage = template.templtContent;
-      sendMessage = sendMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      sendMessage = sendMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      sendMessage = sendMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{보험료}',
-        `${costFormatter(joinDetail?.applyCost)}원`,
-      );
-      sendMessage = sendMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      sendMessage = sendMessage.replaceAll('#{중간내용}', '');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      sendMessage = sendMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      sendMessage = sendMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
-
-      sendButtons = {
-        button: template.buttons,
-      };
-      sendButtons.button[0].linkMo = joinDetail?.insStockUrl;
-      sendButtons.button[0].linkPc = joinDetail?.insStockUrl;
-      sendButtons.button[1].linkMo = joinDetail?.termsUrl;
-      sendButtons.button[1].linkPc = joinDetail?.termsUrl;
-
-      failSubject = '보온 가입 완료';
-      failMessage = template.templtContent;
-      failMessage = failMessage.replaceAll('#{상호명}', joinDetail?.sendNm);
-      failMessage = failMessage.replaceAll('#{업체명}', '㈜넥솔 bo:on');
-      failMessage = failMessage.replaceAll(
-        '#{상품명}',
-        joinDetail?.sendInsProdFullNm,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{보험료}',
-        `${costFormatter(joinDetail?.applyCost)}원`,
-      );
-      failMessage = failMessage.replaceAll(
-        '#{증권번호}',
-        joinDetail?.insStockNo,
-      );
-      failMessage = failMessage.replaceAll('아래 버튼을', '아래 링크를');
-      failMessage = failMessage.replace(
-        '#{중간내용}',
-        `${joinDetail?.insStockUrl}
-
-약관보기
-${joinDetail?.termsUrl}
-  `,
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 이름}', '고객센터');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 이름}',
-        '㈜넥솔 고객센터',
-      );
-      failMessage = failMessage.replaceAll('#{고객센터 번호}', '1522-6545');
-      failMessage = failMessage.replaceAll(
-        '#{고객센터 운영시간}',
-        '(평일9시~18시/점심시간 11시30분~12시30분, 공휴일 제외)',
-      );
     }
 
     const send = await this.funKakaoSendAlimtalk({
@@ -1686,17 +1927,21 @@ ${joinDetail?.termsUrl}
       sender,
       receiver,
       subject: templtName,
+      title: templtTitle,
       message: sendMessage,
       button: sendButtons,
       reservedYn,
       reservedDate,
       reservedTime,
+      insProdCd,
+      referIdx: joinDetail?.referId,
       joinId,
       messageType,
       failMessageYn,
       failSubject,
       failMessage,
       adminId,
+      testYn,
     });
     if (send.responseYn == 'N') {
       statusCode = 201001;
@@ -1719,6 +1964,7 @@ ${joinDetail?.termsUrl}
     sender,
     receiver,
     subject,
+    title,
     message,
     button,
     reservedYn,
@@ -1729,8 +1975,10 @@ ${joinDetail?.termsUrl}
     failSubject,
     failMessage,
     referIdx,
+    insProdCd,
     joinId,
     adminId,
+    testYn,
   }: any) {
     const apiKey = process.env.ALIGO_API_KEY;
     const userId = process.env.ALIGO_USER_ID;
@@ -1777,7 +2025,7 @@ ${joinDetail?.termsUrl}
       // recvname_1: '', // 수신자 이름(1~500)
       subject_1: subject, // 알림톡 제목(1~500)(필수)
       message_1: message, // 알림톡 내용(1~500)(필수)
-      // emtitle_1: '', // 강조표기형의 타이틀(1~500)
+      emtitle_1: testYn == 'Y' ? '' : title, // 강조표기형의 타이틀(1~500)
       // button_1: JSON.stringify(button), // 버튼 정보(1~500) (JSON 타입)
       failover: failMessageYn == null ? 'N' : failMessageYn, // 실패시 대체문자 전송기능(Y/N)
       fsubject_1: failSubject == null || failSubject == '' ? null : failSubject, // 실패시 대체문자 제목(1~500)
@@ -1802,7 +2050,6 @@ ${joinDetail?.termsUrl}
       .then(async (res) => {
         console.log('response', res.data);
         const responseDt = dayjs().toDate();
-        // 변수명 수정
         let counselingText = message;
 
         console.log('button', button);
@@ -1915,18 +2162,26 @@ ${joinDetail?.termsUrl}
           msgContentCd,
         });
 
+        await this.saveBoonSendSmsLogs({
+          adminId,
+          joinId,
+          sendData: JSON.stringify(params),
+          responseData: JSON.stringify(res.data),
+        });
+
+        // 인증번호 템플릿은 제외하고 상담내역 저장
         if (templateCode != 'TV_6373') {
-          // 상담내역 저장
-          // await this.saveGolfCounseling({
-          //   regId: adminId,
-          //   bookerId: reservationId,
-          //   contents: counselingText,
-          //   counselingType: 'A',
-          //   cate: 'K',
-          //   sender,
-          //   receiver,
-          //   viewYn: 'N',
-          // });
+          await this.saveBoonCounseling({
+            regId: adminId,
+            insProdCd,
+            joinId,
+            contents: counselingText,
+            counselingType: 'A',
+            cate: 'K',
+            sender,
+            receiver,
+            viewYn: 'N',
+          });
         }
       })
       .catch(async (error) => {
@@ -1939,6 +2194,14 @@ ${joinDetail?.termsUrl}
           message: error.response.data.resultMsg,
           ...error.response.data,
         };
+
+        await this.saveBoonSendSmsLogs({
+          adminId,
+          insProdCd,
+          joinId,
+          sendData: JSON.stringify(params),
+          errorData: JSON.stringify(error?.response?.data),
+        });
       });
 
     return responseData;
@@ -3657,6 +3920,10 @@ ${joinDetail?.termsUrl}
       query = queries.Join.selectInusredMfliDetailByJoinId;
     } else if (insProdCd == 'ti' || insProdCd == 'oti' || insProdCd == 'otmi') {
       query = queries.Join.selectInusredMfliDetailByReferId;
+    } else if (insProdCd == 'mbi') {
+      query = queries.Claim.selectClaimMbiDetailById;
+    } else if (insProdCd == 'dsf2') {
+      query = queries.Join.selectInusredDsfTwoDetailByJoinId;
     }
 
     const joinListData = await this.startRawQuery(query, parmas);
@@ -3821,5 +4088,49 @@ ${joinDetail?.termsUrl}
       responseData = selectResult;
     }
     return responseData;
+  }
+
+  getClientHost(insProdCd: string, joinAccount: string, joinPath: string) {
+    let clientHost = '';
+
+    switch (insProdCd) {
+      case 'dsf2':
+        if (joinAccount == '희망브리지') {
+          clientHost = `https://dsf2.hope.insboon.com`;
+        } else if (joinAccount == '제로페이' && joinPath?.indexOf('UIB') > -1) {
+          clientHost = `https://dsf2.zeropay-uibbusan.insboon.com`;
+        } else if (joinAccount == '글로벌핀테크') {
+          clientHost = `https://dsf2.hfesg.insboon.com`;
+        }
+        // else if (joinAccount == 'W재단') {
+        //   clientHost = ``;
+        // } else if (joinAccount == '페이코') {
+        //   clientHost = ``;
+        // }
+        break;
+
+      case 'dsf3':
+        break;
+
+      case 'dsf6':
+        break;
+
+      case 'dli':
+        break;
+
+      case 'mfli':
+        break;
+
+      case 'ccali':
+        break;
+
+      case 'mbi':
+        if (joinAccount == '서울시여성가족부') {
+          clientHost = `https://mbi.seoul.insboon.com/`;
+        }
+        break;
+    }
+
+    return clientHost;
   }
 }

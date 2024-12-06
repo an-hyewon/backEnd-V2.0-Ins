@@ -7,7 +7,10 @@ import { CcaliJoin } from '../join/entities/ccali-join.entity';
 import { CcaliClaim } from './entities/ccali-claim.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CcaliJoin, CcaliClaim]), JoinModule],
+  imports: [
+    TypeOrmModule.forFeature([CcaliJoin, CcaliClaim], 'default'),
+    JoinModule,
+  ],
   controllers: [ClaimController],
   providers: [ClaimService],
 })

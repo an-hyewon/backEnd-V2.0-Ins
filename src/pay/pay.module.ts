@@ -8,7 +8,7 @@ import { CardBinNoKicc } from './entities/card-bin-no-kicc.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PayNicepayLogs, CardBinNoKicc]),
+    TypeOrmModule.forFeature([PayNicepayLogs, CardBinNoKicc], 'default'),
     CertModule,
   ],
   controllers: [PayController],

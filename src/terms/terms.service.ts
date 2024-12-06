@@ -16,9 +16,10 @@ import { CommonService } from 'src/common/common.service';
 export class TermsService {
   constructor(
     private readonly commonService: CommonService,
-    @InjectRepository(TermsAgreeLogs)
+
+    @InjectRepository(TermsAgreeLogs, 'default')
     private termsAgreeLogsRepository: Repository<TermsAgreeLogs>,
-    @InjectRepository(TermsAgreeMap)
+    @InjectRepository(TermsAgreeMap, 'default')
     private termsAgreeMapRepository: Repository<TermsAgreeMap>,
   ) {}
 

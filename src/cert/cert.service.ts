@@ -12,9 +12,9 @@ import { SaveSecukitOneCertLogsReqDto } from './dto/save-secukit-one-cert-logs-r
 @Injectable()
 export class CertService {
   constructor(
-    @InjectRepository(PhoneCertLogs)
+    @InjectRepository(PhoneCertLogs, 'default')
     private phoneCertLogsRepository: Repository<PhoneCertLogs>,
-    @InjectRepository(SecukitOneCertLogs)
+    @InjectRepository(SecukitOneCertLogs, 'default')
     private secukitOneCertLogsRepository: Repository<SecukitOneCertLogs>,
   ) {}
 

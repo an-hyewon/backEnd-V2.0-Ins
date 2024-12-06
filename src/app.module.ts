@@ -9,7 +9,6 @@ import { ValidationPipe } from './common/pipe/validation.pipe';
 import { TermsModule } from './terms/terms.module';
 import { ClientLog } from './common/entities/client-log.entity';
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor';
-import { ScheduleModule } from '@nestjs/schedule';
 import { PayModule } from './pay/pay.module';
 import { CertModule } from './cert/cert.module';
 import { SmsModule } from './sms/sms.module';
@@ -64,17 +63,28 @@ import { DsfSixGruopJoinUpload } from './insurance/join/entities/dsf-six-group-j
     TypeOrmModule.forRoot({
       name: 'default',
       type: 'mysql',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      host: process.env.MYSQL_DB_HOST,
+      port: Number(process.env.MYSQL_DB_PORT),
+      username: process.env.MYSQL_DB_USERNAME,
+      password: process.env.MYSQL_DB_PASSWORD,
+      database: process.env.MYSQL_DB_NAME,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
       logging: true,
     }),
-    TypeOrmModule.forFeature([CcaliJoin, DsfSixGruopJoinUpload]),
-    ScheduleModule.forRoot(),
+    TypeOrmModule.forRoot({
+      name: 'smsDbConnection',
+      type: 'mysql',
+      host: process.env.MYSQL_DB_HOST,
+      port: Number(process.env.MYSQL_DB_PORT),
+      username: process.env.MYSQL_DB_USERNAME,
+      password: process.env.MYSQL_DB_PASSWORD,
+      database: process.env.MYSQL_DB_NAME_SMS,
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: false,
+      logging: true,
+    }),
+    TypeOrmModule.forFeature([CcaliJoin, DsfSixGruopJoinUpload], 'default'),
     CommonModule,
     JoinModule,
     TermsModule,

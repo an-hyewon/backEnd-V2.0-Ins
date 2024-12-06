@@ -2182,7 +2182,174 @@ export const queries = {
             AND insured.del_yn = 'N'
             AND insured.id = ?
     `,
+
+    selectInusredDsfTwoDetailByJoinId: `
+      SELECT  insured.id
+              , insured.refer_idx AS referId
+              , insured.insured_nm AS insuredNm
+              , SUBSTRING(insured.insured_rr_no, 1, 7) AS insuredRrNo
+              , insured.insured_tel_no AS insuredTelNo
+              , insured.insured_email AS insuredEmail
+              , CASE WHEN insured.insured_owner_yn = 'O' THEN '소유자'
+                     WHEN insured.insured_owner_yn = 'T' THEN '임차자'
+                     ELSE NULL 
+                     END AS insuredOwnerType
+              , CASE WHEN insured.insured_owner_yn = 'O' AND insured.insured_living_yn = 'Y' THEN '거주'
+                     WHEN insured.insured_owner_yn = 'O' AND insured.insured_living_yn = 'N' THEN '비거주'
+                     ELSE NULL 
+                     END AS insuredLivingType
+              , CASE WHEN insured.insured_owner_yn = 'O' AND insured.insured_owner_rel_cd = 1 THEN '본인'
+                     WHEN insured.insured_owner_yn = 'O' AND insured.insured_owner_rel_cd = 2 THEN '가족'
+                     ELSE NULL 
+                     END AS insuredOwnerRelCd
+              , insured.plat_plc AS platPlc
+              , insured.new_plat_plc AS newPlatPlc
+              , insured.new_plat_plc_etc AS newPlatPlcEtc
+              , CASE WHEN insured.new_plat_plc_etc IS NOT NULL THEN REGEXP_REPLACE(CONCAT(insured.new_plat_plc, ' ', insured.new_plat_plc_etc), '( ){2,}', ' ')
+                     ELSE REGEXP_REPLACE(insured.new_plat_plc, '( ){2,}', ' ')
+                     END AS address
+              , insured.citycode
+              , insured.sido_full_nm AS sidoFullNm
+              , insured.sigungu_nm AS sigunguNm
+              , insured.dong_nm AS dongNm
+              , insured.ho_nm AS hoNm
+              , insured.flr_gb_cd AS flrGbCd
+              , insured.flr_gb_nm AS flrGbNm
+              , insured.flr_no AS flrNo
+              , insured.zip_cd AS zipCd
+              , insured.insured_using_flr_cnt AS insuredUsingFlrCnt
+              , insured.using_flr_nm_list AS usingFlrNmList
+              , CASE WHEN insured.bld_type = '공동' AND insured.etc_purps LIKE '%아파트%' THEN '공동주택(아파트)'
+                     WHEN insured.bld_type = '공동' AND insured.bld_nm LIKE '%아파트%' THEN '공동주택(아파트)'
+                     WHEN insured.bld_type = '공동' AND insured.etc_purps LIKE '%연립%' THEN '공동주택(연립주택)'
+                     WHEN insured.bld_type = '공동' AND insured.etc_purps LIKE '%다세대%' THEN '공동주택(다세대주택)'
+                     WHEN insured.bld_type = '공동' THEN '공동주택(아파트)'
+                     WHEN insured.bld_type = '단독' AND insured.etc_purps LIKE '%다가구%' THEN '단독주택(다가구주택)'
+                     WHEN insured.bld_type = '단독' AND insured.etc_purps LIKE '%다중%' THEN '단독주택(다중주택)'
+                     WHEN insured.bld_type = '단독' THEN '단독주택'
+                     ELSE NULL 
+                     END AS mainPurpsNm
+              , insured.main_strct_type AS mainStrctType
+              , insured.roof_strct_type AS roofStrctType
+              , insured.grnd_flr_cnt AS grndFlrCnt
+              , insured.ugrnd_flr_cnt AS ugrndFlrCnt
+              , insured.tot_apply_area AS totApplyArea
+              , insured.apply_area AS applyArea
+              , insured.guaranteed_cost_ratio AS guaranteedCostRatio
+              , insured.bld_type AS bldType
+              , insured.bld_cost AS bldCost
+              , insured.movable_assets_cost AS movableAssetsCost
+              , CONCAT(LEFT(insured.ins_start_dt, 10), ' ', insured.ins_start_hm) AS insStartDt
+              , CONCAT(LEFT(insured.ins_end_dt, 10), ' ', insured.ins_end_hm) AS insEndDt
+              , insured.tenant_movable_assets_yn AS tenantMovableAssetsYn
+              , insured.movable_assets_yn AS movableAssetsYn
+              , insured.bld_flooding_yn AS bldFloodingYn
+              , insured.damaged_window_yn AS damagedWindowYn
+              , insured.damaged_product_yn AS damagedProductYn
+              , tir.tot_ins_cost AS totInsCost
+              , tir.tot_insured_ins_cost AS totInsuredInsCost
+              , tir.tot_local_gov_ins_cost AS totLocalGovInsCost
+              , tir.tot_gov_ins_cost AS totGovInsCost
+              , CASE WHEN insured.pay_yn = 'N' THEN 0
+                     ELSE tir.tot_insured_ins_cost 
+                     END AS applyCost
+              , insured.join_day AS joinDay
+              , insured.join_file_url AS joinFileUrl
+              , insured.ins_com AS insCom
+              , insured.ins_prod_nm AS insProdNm
+              , insured.ins_cost_target_cd AS insCostTargetCd
+              , insured.all_target_bld_cd AS allTargetBldCd
+              , insured.all_target_person_cd AS allTargetPersonCd
+              , insured.join_ck AS joinCk
+              , insured.pay_yn AS payYn
+              , insured.pay_method AS payMethod
+              , insured.pay_status AS payStatus
+              , insured.join_account AS joinAccount
+              , insured.join_path AS joinPath
+              , tir.ins_stock_no AS insStockNo
+              , insured.result_seq_no AS resultId
+              , insured.sign_file_url AS signFileUrl
+              , insured.ins_renew_yn AS insRenewYn
+              , insured.pre_ins_com AS preInsCom
+              , insured.pre_ins_end_dt AS preInsEndDt
+              , insured.disaster_damaged_report_yn AS disasterDamagedReportYn
+              , insured.marketing_agree_yn AS marketingAgreeYn
+              , insured.created_dt AS createdDt
+              , insured.updated_dt AS updatedDt
+              , tir.disbursed_dt AS disbursedDt
+              , bti.terms_short_url AS termsUrl
+              , ip.ins_prod_full_nm AS insProdFullNm
+              , insured.referer AS url
+              , insured.insured_nm AS sendNm
+              , CASE WHEN insured.join_account IN ('희망브리지') THEN CONCAT(insured.join_account, '를')
+                     ELSE insured.join_account
+                     END AS sendJoinAccount
+              , ip.ins_prod_full_nm AS sendInsProdFullNm
+      FROM tb_insured_dsf_two_info insured LEFT JOIN tb_ins_result_dsf_two tir ON insured.result_seq_no = tir.seq_no
+                                     LEFT JOIN tb_boon_terms_info bti ON insured.created_dt >= bti.start_dt
+                                                                         AND insured.created_dt < bti.end_dt
+                                                                         AND insured.ins_com = bti.ins_com
+                                                                         AND insured.pay_yn = bti.pay_yn
+                                     LEFT JOIN ins_prod ip ON insured.created_dt >= ip.strt_dt
+                                                              AND insured.created_dt < ip.end_dt
+                                                              AND bti.ins_prod_cd = ip.ins_prod_cd
+      WHERE 1=1
+            AND insured.deleted_dt IS NULL
+            AND bti.ins_prod_cd = 'dsf2'
+            AND insured.id = ?
+    `,
     /* 가입내역 상세 조회 */
+  },
+  Claim: {
+    /* 청구내역 상세 조회 */
+    selectClaimMbiDetailById: `
+      SELECT  cmi.seq_no AS joinId
+              , cmi.insured_nm AS insuredNm
+              , LEFT(cmi.insured_rr_no, 7) AS insuredRrNo
+              , cmi.insured_lr_nm AS insuredLrNm
+              , LEFT(cmi.insured_lr_rr_no, 7) AS insuredLrRrNo
+              , cmi.insured_lr_tel_no AS insuredLrTelNo
+              , cmi.insured_lr_unique_key AS insuredLrUniqueKey
+              , mcstc.small_type_cd AS claimTypeCd
+              , mcstc.small_type_nm AS claimTypeNm
+              , cmi.claim_status AS claimStatus
+              , CASE WHEN cmi.claim_status = 'N' THEN '심사 중'
+                     WHEN cmi.claim_status = 'Y' THEN '보험금 지급 완료'
+                     WHEN cmi.claim_status = 'E' THEN '반려'
+                     WHEN cmi.claim_status = 'C' THEN '취소'
+                     ELSE NULL 
+                     END AS claimStatusNm
+              , cmi.treat_day AS treatDay
+              , cmi.acc_cause AS accCause
+              , cmi.bank_nm AS bankNm
+              , cmi.bank_account_no AS bankAccountNo
+              , cmi.join_account AS joinAccount
+              , cmi.join_path AS joinPath
+              , cmi.created_dt AS claimDay
+              , cmi.updated_dt AS updatedDt
+              , cmsr.settle_status AS settleStatus
+              , cmsr.settle_comment AS settleComment
+              , cmsr.settle_cost AS settleCost
+              , CASE WHEN cmi.claim_status = 'C' THEN cmi.cancel_dt
+	       	ELSE cmsr.settle_day 
+                     END AS settleDay
+              -- , cmf.seq_no AS fileId
+              -- , cmf.claim_type_cd AS fileTypeCd
+              -- , cmf.file_url AS fileUrl
+              , bti.terms_short_url AS termsUrl
+      FROM tb_claim_mbi_info cmi LEFT JOIN tb_mbi_claim_small_type_cd mcstc ON cmi.claim_type_cd = mcstc.small_type_cd
+                                 LEFT JOIN tb_claim_mbi_settle_result cmsr ON cmi.result_seq_no = cmsr.seq_no
+                                                                              AND cmi.seq_no = cmsr.claim_seq_no
+                                 -- LEFT JOIN tb_claim_mbi_file cmf ON cmi.seq_no = cmf.claim_seq_no
+                                 LEFT JOIN tb_boon_terms_info bti ON cmi.created_dt >= bti.start_dt
+                                                                     AND cmi.created_dt < bti.end_dt
+      WHERE 1=1
+            AND cmi.deleted_dt IS NULL
+            AND cmsr.deleted_dt IS NULL
+            AND bti.ins_prod_cd = 'mbi'
+            AND cmi.seq_no = ?
+    `,
+    /* 청구내역 상세 조회 */
   },
   Insurator: {
     /* 설계내역 조회 */
