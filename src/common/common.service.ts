@@ -89,8 +89,6 @@ export class CommonService {
     private insComRatioInfoRepository: Repository<InsComRatioInfo>,
     @InjectRepository(SmsSendLogs, 'default')
     private smsSendLogsRepository: Repository<SmsSendLogs>,
-    @InjectRepository(BoonSmsSendLog, 'smsDbConnection')
-    private boonSmsSendLogRepository: Repository<BoonSmsSendLog>,
     @InjectRepository(AlimtalkTemplate, 'default')
     private alimtalkTemplateRepository: Repository<AlimtalkTemplate>,
     @InjectRepository(OauthToken, 'default')
@@ -135,6 +133,9 @@ export class CommonService {
     private adminUserRepository: Repository<AdminUser>,
     @InjectRepository(BoonCounseling, 'default')
     private boonCounselingRepository: Repository<BoonCounseling>,
+
+    @InjectRepository(BoonSmsSendLog, 'smsDbConnection')
+    private boonSmsSendLogRepository: Repository<BoonSmsSendLog>,
   ) {}
 
   async saveClientLog(data: CreateClientLogReqDto) {
